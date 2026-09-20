@@ -1,0 +1,14 @@
+version: 3
+build:
+  builder: node
+  buildpack: player/frameworks/nodejs
+  target: production
+serve:
+  command: "node server.js"
+  healthcheckPath: "/api/health"
+
+env:
+  - key: NODE_ENV
+    value: production
+  - key: PORT
+    value: "3585"

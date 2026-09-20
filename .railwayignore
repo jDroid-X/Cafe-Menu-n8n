@@ -1,0 +1,7 @@
+node_modules/
+.DS_Store
+*.log
+.env
+.n8n_demo_runtime/
+playwright-report/
+coverage/
