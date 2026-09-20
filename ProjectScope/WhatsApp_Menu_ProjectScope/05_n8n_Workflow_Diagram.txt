@@ -1,0 +1,101 @@
+5. N8N WORKFLOW DIAGRAM
+
+5.1 HIGH LEVEL
+
+[Customer / Test Console]
+          |
+          v
+[WhatsApp Business Cloud Trigger]
+          |
+          v
+[Normalize Message]
+          |
+          v
+[AI AGENT]
+   |       |       |       |
+   v       v       v       v
+[Gemini] [Memory] [Inventory] [FAQ]
+                     |
+                     v
+                 [Orders]
+                     |
+                     v
+             [Response Composer]
+                     |
+                     v
+        [WhatsApp Send Message]
+                     |
+                     v
+                 [Customer]
+
+5.2 DEMO MODE
+
+[Test Console / Mock WhatsApp]
+          |
+          v
+[Demo Trigger]
+          |
+          v
+[AI Agent]
+   |      |       |
+   v      v       v
+[Mock LLM] [Local Memory] [Local Data Tools]
+                              |
+                    +---------+---------+
+                    |                   |
+                 Inventory            FAQ
+                    |
+                    v
+                  Orders
+                    |
+                    v
+              [Mock Response]
+
+5.3 REFERENCE VIDEO FLOW
+The source demonstrates an initial On Chat Message trigger, AI Agent, Gemini Chat Model, Simple Memory, Google Sheets tools, restaurant system instructions, then replacement of the initial trigger with WhatsApp Business Cloud On Message and connection to WhatsApp Send Message.
+
+5.4 TOOL DEFINITIONS
+GET INVENTORY
+Input: food item or availability query.
+Output: matching menu/inventory rows.
+
+GET FAQ
+Input: customer question.
+Output: configured FAQ answer.
+
+POST ORDERS
+Input: customer name, food item, quantity, status, current timestamp.
+Output: saved order confirmation.
+
+5.5 ORDER FLOW
+Customer: "I want Vada Pav"
+ -> Agent asks quantity/name if missing
+ -> Customer provides details
+ -> Agent checks availability
+ -> Agent records order
+ -> Agent confirms order
+
+5.6 UNAVAILABLE ITEM FLOW
+Customer requests unavailable item
+ -> Inventory tool returns unavailable
+ -> Agent refuses confirmation
+ -> Agent offers currently available options
+
+5.7 MEMORY FLOW
+Message 1: customer gives name
+Message 2: customer orders
+ -> Memory provides context
+ -> Agent avoids asking for already-known details where valid.
+
+5.8 ERROR PATH
+Any integration error
+ -> Capture error
+ -> Mark operation failed
+ -> Produce truthful fallback
+ -> Log event
+ -> Do not fabricate success.
+
+5.9 FUTURE PRODUCTION EXTENSIONS
+Optional:
+Payment -> Order confirmation -> Kitchen/POS -> Delivery -> Status notifications -> Customer feedback.
+These are not part of the demo.

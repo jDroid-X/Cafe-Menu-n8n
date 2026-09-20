@@ -1,0 +1,298 @@
+9. MASTER AGENTIC ROCAS PROMPT FOR ANTIGRAVITY
+
+ROLE
+You are an Agentic Product Engineering Team operating inside Antigravity. Build a DEMO version of a configurable WhatsApp Restaurant Menu / Food Ordering AI Agent inspired by the referenced n8n tutorial.
+
+REFERENCE
+YouTube:
+https://www.youtube.com/watch?v=zQM2HgNTBCs
+
+REFERENCE BEHAVIOR
+The reference demonstrates:
+- n8n orchestration
+- WhatsApp Business Cloud
+- AI Agent
+- Google Gemini Chat Model
+- Simple Memory
+- Google Sheets tools for Inventory, FAQ and Orders
+- Restaurant-specific system instructions
+- WhatsApp response
+- Conversational food ordering
+- Availability validation
+- Order persistence
+
+IMPORTANT DEMO CONSTRAINT
+Do not build this as a production application yet.
+Build the architecture so it can become a production application later by changing configuration/settings instead of rewriting workflow logic.
+
+R = ROLE
+Act as:
+1. Product Architect
+2. Business Analyst
+3. UX Architect
+4. n8n Workflow Architect
+5. Frontend Engineer
+6. Backend Engineer
+7. Database Designer
+8. QA/Test Engineer
+9. DevOps/Local Runtime Engineer
+10. Documentation Engineer
+
+O = OBJECTIVE
+Create a working local DEMO that:
+- provides configuration screens;
+- stores configuration;
+- launches/uses a separate local n8n demo instance;
+- creates the restaurant AI workflow;
+- supports mock/offline mode;
+- supports optional online integrations;
+- demonstrates menu, FAQ, inventory, order and memory behavior;
+- provides a test console;
+- exposes integration health;
+- does not touch the user's existing n8n instance.
+
+C = CONTEXT
+The reference workflow is:
+Incoming message
+ -> AI Agent
+ -> Gemini LLM
+ -> Simple Memory
+ -> Google Sheets tools:
+    Get Inventory
+    Get FAQ
+    Post Orders
+ -> WhatsApp Send Message
+
+Reference data:
+Inventory:
+Food Item, Quantity, Status
+Orders:
+Customer Name, Food Item, Quantity Order, Order Date, Status
+FAQ:
+Question, Answer
+
+Example menu:
+Vada Pav
+Misal Pav
+
+Reference behavior:
+- "What is available?" lists available items.
+- FAQ questions are answered from FAQ data.
+- "I want Vada Pav" causes the agent to request missing details.
+- A complete order is stored.
+- An unavailable item is not accepted as available.
+- Agent knows restaurant identity from system instructions.
+- Memory retains recent conversation context.
+- WhatsApp trigger replaces the initial chat trigger in the final flow.
+
+A = ACTIONS
+PHASE 0: DISCOVERY
+1. Inspect the workspace.
+2. Inspect the existing local n8n installation.
+3. Identify the current n8n port without changing it.
+4. Select an unused local port for the demo.
+5. Do not overwrite existing workflows, credentials or processes.
+
+PHASE 1: REQUIREMENTS
+Create:
+- Business Requirement
+- Scope of Work
+- Online/Offline Dependencies
+- Technical Specification
+- Functional Specification
+- Workflow Diagram
+- Configuration Specification
+- Configuration UI Specification
+- Test and Acceptance Plan
+- Traceability Matrix
+- Runbook
+- Demo User Guide
+
+PHASE 2: PRODUCT STRUCTURE
+Create a lightweight local web application with:
+Dashboard
+Restaurant
+Menu
+FAQ
+AI Agent
+Memory
+WhatsApp
+Google Sheets
+n8n Runtime
+Demo Control
+Test Console
+Audit
+
+PHASE 3: DATABASE
+Use SQLite for demo unless the workspace already has an appropriate local DB.
+Create tables for:
+restaurant_config
+menu_items
+faq_items
+orders
+conversation_sessions
+conversation_messages
+integration_config
+agent_config
+memory_config
+n8n_config
+audit_log
+
+PHASE 4: CONFIGURATION-FIRST DESIGN
+Do NOT hard-code restaurant-specific values in the workflow.
+Build configuration objects for:
+restaurant
+menu
+faq
+agent
+memory
+whatsapp
+google_sheets
+n8n
+demo
+security
+
+Every configurable value must be:
+- visible
+- editable
+- validated
+- persisted
+- reloadable
+- represented in the technical documentation
+
+PHASE 5: N8N WORKFLOW
+Build a demo workflow equivalent to:
+
+[Demo/WhatsApp Trigger]
+ -> [Normalize Message]
+ -> [AI Agent]
+      -> [Chat Model]
+      -> [Simple Memory]
+      -> [Get Inventory]
+      -> [Get FAQ]
+      -> [Post Orders]
+ -> [Response]
+ -> [Send Message]
+
+Use clear node names.
+
+PHASE 6: ADAPTER MODEL
+Implement:
+MOCK_WHATSAPP
+REAL_WHATSAPP
+MOCK_LLM
+GEMINI
+LOCAL_LLM
+LOCAL_DATA
+GOOGLE_SHEETS
+
+The demo defaults to MOCK + LOCAL_DATA.
+Real integrations are optional.
+
+PHASE 7: BUSINESS RULES
+Agent must:
+- use configured restaurant name;
+- answer from configured FAQ;
+- use inventory before confirming availability;
+- ask for missing customer/order information;
+- save confirmed orders;
+- preserve conversation context;
+- never fabricate inventory, FAQ or order persistence;
+- politely reject unavailable items;
+- return a useful fallback when an integration is unavailable.
+
+PHASE 8: SECURITY
+Never expose raw API secrets in the UI.
+Use secret references or environment variables.
+Mask secrets.
+Do not log tokens.
+Do not import credentials from any downloaded reference workflow.
+
+PHASE 9: LOCAL N8N SAFETY
+CRITICAL:
+- Do not stop the user's existing n8n.
+- Do not change its port.
+- Do not modify its workflows.
+- Do not reuse its production credentials.
+- Run demo n8n separately.
+- If a separate n8n process cannot be safely launched, create a clearly isolated workflow configuration artifact and explain the blocker instead of touching the existing runtime.
+
+PHASE 10: TESTING
+Run:
+1. Startup
+2. Menu query
+3. FAQ
+4. Order incomplete
+5. Order complete
+6. Unavailable item
+7. Memory
+8. LLM failure
+9. Inventory failure
+10. WhatsApp mock
+11. Configuration persistence
+12. Regression
+
+PHASE 11: DEMO DATA
+Seed:
+Restaurant: MBS Restaurant
+Items:
+Vada Pav
+Misal Pav
+Add at least one unavailable sample item.
+Add FAQs:
+Opening hours
+Home delivery
+Contact/order policy
+
+PHASE 12: UI QUALITY
+Use a clean admin dashboard.
+Prefer forms, tables, tabs, badges and validation messages.
+Show:
+ONLINE / OFFLINE
+MOCK / REAL
+READY / WARNING / BLOCKED
+Do not make the user edit raw JSON unless an Advanced section is explicitly selected.
+
+PHASE 13: DOCUMENTATION
+Create all project documents in:
+C:\Users\jiten\jAnitGravity\JG-AI-Business-OS\WhatsApp Menu\ProjectScope
+
+Required:
+Business Requirement.txt
+Scope of Work.txt
+Technical Specification.txt
+Functional Specification.txt
+n8n Workflow Diagram.txt
+Configuration Online Offline Settings.txt
+
+Also create:
+Configuration UI Screen Spec.txt
+Test and Acceptance Plan.txt
+Traceability Matrix.txt
+Local Demo Runbook.txt
+Demo User Guide.txt
+Architecture Decision Record.txt
+README.txt
+
+TRACEABILITY
+Every major feature must map:
+Business Requirement -> Functional Requirement -> UI -> Database -> n8n Node -> Test Case.
+
+S = SUCCESS CRITERIA
+The implementation is accepted only when:
+- demo starts independently;
+- separate n8n port is used;
+- configuration screens work;
+- configuration persists;
+- sample menu/FAQ work;
+- order can be captured;
+- memory works;
+- failure states are truthful;
+- existing n8n is untouched;
+- documentation matches implementation;
+- all required test cases pass.
+
+FINAL RULE
+If a requirement is ambiguous, prefer the reference video's demonstrated behavior and document the assumption.
+Do not invent production capabilities that are not needed for the demo.
+Build the smallest complete architecture that can later grow into a configurable production product.

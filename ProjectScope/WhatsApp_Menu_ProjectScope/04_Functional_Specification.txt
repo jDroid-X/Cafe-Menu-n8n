@@ -1,0 +1,174 @@
+4. FUNCTIONAL SPECIFICATION
+
+4.1 DASHBOARD
+Display:
+- Demo status
+- n8n status
+- Selected local port
+- AI provider mode
+- WhatsApp mode
+- Data mode
+- Last workflow execution
+- Integration health
+- Quick test actions
+
+4.2 RESTAURANT PROFILE
+Editable:
+- Restaurant name
+- Welcome message
+- Currency
+- Time zone
+- Business hours
+- Delivery availability
+- Contact details
+- Active/inactive
+
+Validation:
+- Restaurant name required.
+- Time zone required.
+- Welcome message length limit.
+
+4.3 MENU / INVENTORY
+Fields:
+- Item code
+- Food item
+- Description
+- Category
+- Price
+- Quantity
+- Availability status
+- Active
+
+Operations:
+- Add
+- Edit
+- Disable
+- Search
+- Filter
+- Bulk import/export
+- Reset demo data
+
+Business rule:
+The AI must not claim an inactive or unavailable item is available.
+
+4.4 FAQ
+Fields:
+- Question
+- Answer
+- Category
+- Active
+Operations:
+- Add/edit/delete
+- Search
+- Preview
+- Test against AI
+
+4.5 AI AGENT CONFIGURATION
+Grouped sections:
+A. Identity
+B. Restaurant behavior
+C. Order behavior
+D. Inventory behavior
+E. FAQ behavior
+F. Response style
+G. Language
+H. Safety/fallback
+I. Tool usage rules
+
+The final system message should be assembled from these settings rather than forcing the administrator to edit a large prompt.
+
+4.6 MEMORY
+Settings:
+- Enable memory
+- Memory type
+- Maximum messages
+- Session key
+- Expiry
+- Reset session
+- Test memory
+
+The reference implementation demonstrates Simple Memory and a last-10-message context.
+
+4.7 WHATSAPP CONFIGURATION
+Groups:
+A. Mode: MOCK / REAL
+B. Meta App
+C. Client/App ID
+D. App Secret reference
+E. Access Token reference
+F. Business Account ID
+G. Phone Number ID
+H. Test recipient
+I. Webhook/verification configuration
+J. Send-message settings
+
+UI rules:
+- Secrets masked.
+- Test Connection button.
+- Status badge.
+- Never expose full token.
+
+4.8 GOOGLE SHEETS CONFIGURATION
+Groups:
+A. Mode: LOCAL / GOOGLE
+B. Spreadsheet ID
+C. Spreadsheet name
+D. Inventory sheet
+E. Orders sheet
+F. FAQ sheet
+G. OAuth credential reference
+H. Column mappings
+
+Reference sheet structure:
+Inventory: Food Item, Quantity, Status
+Orders: Customer Name, Food Item, Quantity Order, Order Date, Status
+FAQ: Question, Answer
+
+4.9 N8N CONFIGURATION
+Groups:
+A. Runtime
+B. Host
+C. Port
+D. Workflow name
+E. Webhook base URL
+F. Execution mode
+G. Activation state
+H. Import/export path
+I. Logging
+J. Timeout
+K. Retry
+L. Demo instance identifier
+
+4.10 TEST CONSOLE
+Test messages:
+- "Hi"
+- "What is available?"
+- "What are your opening hours?"
+- "I want Vada Pav"
+- "MBS Coding, two Vada Pav"
+- Request unavailable item.
+- Multi-turn memory test.
+
+Display:
+Input
+Normalized input
+Agent decision
+Tools called
+Tool results
+Final response
+Persistence result
+Errors
+
+4.11 ERROR HANDLING
+If LLM unavailable:
+- Use mock response if demo mode is enabled.
+If inventory unavailable:
+- Do not invent availability.
+If order persistence fails:
+- Do not claim order is saved.
+If WhatsApp unavailable:
+- Store outbound message in test log and display pending/mock status.
+
+4.12 FUTURE CONFIGURATION-FIRST BEHAVIOR
+Every value that may change by restaurant should be configurable.
+Workflow logic should remain stable while business data and provider settings change.

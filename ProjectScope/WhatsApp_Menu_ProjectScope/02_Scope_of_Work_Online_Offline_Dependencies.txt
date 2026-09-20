@@ -1,0 +1,87 @@
+2. SCOPE OF WORK + ONLINE/OFFLINE DEPENDENCY LIST
+
+2.1 IN SCOPE
+A. Configuration UI
+- Restaurant profile
+- Menu/inventory
+- FAQ
+- Order settings
+- AI agent/system prompt
+- LLM settings
+- Memory settings
+- WhatsApp settings
+- Google Sheets settings
+- Demo/mock mode
+- Environment/port settings
+- Test/health-check controls
+
+B. n8n workflow
+- Trigger
+- AI Agent
+- LLM
+- Memory
+- Inventory tool
+- FAQ tool
+- Order persistence tool
+- WhatsApp response
+- Error/fallback path
+- Logging/test path
+
+C. Demo application
+- Dashboard
+- Configuration screens
+- Data-entry screens
+- Workflow status
+- Integration status
+- Test console
+- Sample data
+- Reset demo data
+
+2.2 ONLINE DEPENDENCIES
+Required for real production-style integration:
+- WhatsApp Business Cloud / Meta
+- Gemini API
+- Google Sheets / Google OAuth
+- Internet connectivity
+- Meta Business Portfolio and app configuration
+- Valid API credentials/tokens
+
+The referenced tutorial explicitly uses Gemini, WhatsApp Business Cloud and Google Sheets. The video describes creating Meta credentials, connecting WhatsApp Business Cloud, generating an access token and using a Google Sheet named "Food Delivery System". 
+
+2.3 OFFLINE/LOCAL DEPENDENCIES
+Suitable for DEMO:
+- Windows PC
+- Existing local n8n installation
+- A separate demo n8n process/port
+- Local demo web application
+- Local JSON/SQLite/mock data store
+- Local logging
+- Browser
+- Sample restaurant data
+- Mock WhatsApp adapter
+- Mock LLM adapter OR local LLM adapter if available
+
+2.4 HYBRID MODE
+Recommended demo architecture:
+UI + configuration + demo database = local.
+n8n = local separate port.
+External APIs = optional.
+When online credentials exist, switch adapters from MOCK to REAL.
+
+2.5 DEPENDENCY MATRIX
+Component | Demo | Production
+n8n | Local | Local/VPS/cloud
+WhatsApp | Mock | Meta WhatsApp Business Cloud
+LLM | Mock/local or configured Gemini | Gemini or approved LLM
+Menu data | Local store | Google Sheets or DB
+FAQ | Local store | Google Sheets or DB
+Orders | Local store | Google Sheets/DB
+Memory | Local | Redis/DB/n8n memory
+Authentication | Demo admin guard | Proper RBAC
+Internet | Optional for offline demo | Required for external services
+
+2.6 NOT-TOUCH RULE
+The implementation must not change the existing n8n workflow set. Use a dedicated demo process and a free, unused local port discovered during setup.
+
+2.7 ACCEPTANCE OF ONLINE LIMITATIONS
+If external credentials are unavailable, the demo must still run in offline/mock mode and must visibly label the integration as DEMO/MOCK rather than failing silently.

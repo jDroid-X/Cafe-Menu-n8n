@@ -1,0 +1,40 @@
+{
+    "chat.tools.terminal.autoApprove": {
+        "/^node -e \"const \\{ DatabaseSync \\} = require\\('node:sqlite'\\); const db = new DatabaseSync\\('C:/Users/jiten/\\.n8n/database\\.sqlite', \\{ readOnly: true \\}\\); const row = db\\.prepare\\('SELECT \\* FROM workflow_entity WHERE id = \\?'\\)\\.get\\('USdZGa2vqGuUstP7'\\); Object\\.keys\\(row\\)\\.forEach\\(k => \\{ console\\.log\\(k \\+ ':', typeof row\\[k\\] === 'string' && row\\[k\\]\\.length > 100 \\? row\\[k\\]\\.substring\\(0, 200\\) \\+ '\\.\\.\\.' : JSON\\.stringify\\(row\\[k\\]\\)\\.substring\\(0, 200\\)\\); \\}\\);\"$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^node -e \"const \\{ DatabaseSync \\} = require\\('node:sqlite'\\); const db = new DatabaseSync\\('C:/Users/jiten/\\.n8n/database\\.sqlite', \\{ readOnly: true \\}\\); const row = db\\.prepare\\('SELECT nodes FROM workflow_entity WHERE id = \\?'\\)\\.get\\('USdZGa2vqGuUstP7'\\); const nodes = JSON\\.parse\\(row\\.nodes\\); nodes\\.forEach\\(n => \\{ console\\.log\\('--- ' \\+ n\\.name \\+ ' ---'\\); const str = JSON\\.stringify\\(n\\); const exprMatch = str\\.match\\(/\\\\\\{\\\\\\{\\[\\^\\\\\\}\\]\\+\\\\\\}\\\\\\}/g\\); if \\(exprMatch\\) console\\.log\\('EXPRESSIONS:', JSON\\.stringify\\(exprMatch\\)\\); \\}\\);\"$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^node -e \"const \\{ DatabaseSync \\} = require\\('node:sqlite'\\); const db = new DatabaseSync\\('c:/Users/jiten/jAnitGravity/JG-AI-Business-OS/WhatsApp Menu_n8n/data/restaurant_demo\\.db', \\{ readOnly: true \\}\\); const agentConfig = db\\.prepare\\('SELECT identity_prompt, restaurant_rules, temperature, max_tokens, response_style, response_language FROM agent_config'\\)\\.get\\(\\); console\\.log\\(JSON\\.stringify\\(agentConfig, null, 2\\)\\);\"$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^node -e \"const \\{ DatabaseSync \\} = require\\('node:sqlite'\\); const db = new DatabaseSync\\('C:/Users/jiten/\\.n8n/database\\.sqlite', \\{ readOnly: true \\}\\); const row = db\\.prepare\\('SELECT nodes FROM workflow_entity WHERE id = \\?'\\)\\.get\\('USdZGa2vqGuUstP7'\\); const nodes = JSON\\.parse\\(row\\.nodes\\); nodes\\.forEach\\(n => \\{ if \\(n\\.name === 'Get Inventory' \\|\\| n\\.name === 'FAQ' \\|\\| n\\.name === 'Post Orders'\\) \\{ console\\.log\\(n\\.name \\+ ':', JSON\\.stringify\\(n\\.parameters, null, 2\\)\\); \\} \\}\\);\"$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^node -e \"const \\{ DatabaseSync \\} = require\\('node:sqlite'\\); const db = new DatabaseSync\\('C:/Users/jiten/\\.n8n/database\\.sqlite', \\{ readOnly: true \\}\\); const row = db\\.prepare\\('SELECT nodes FROM workflow_entity WHERE id = \\?'\\)\\.get\\('USdZGa2vqGuUstP7'\\); const nodes = JSON\\.parse\\(row\\.nodes\\); nodes\\.forEach\\(n => \\{ if \\(n\\.name === 'When chat message received'\\) \\{ console\\.log\\(JSON\\.stringify\\(n, null, 2\\)\\); \\} \\}\\);\"$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^node -e \"const \\{ DatabaseSync \\} = require\\('node:sqlite'\\); const db = new DatabaseSync\\('C:/Users/jiten/\\.n8n/database\\.sqlite', \\{ readOnly: true \\}\\); const row = db\\.prepare\\('SELECT nodes FROM workflow_entity WHERE id = \\?'\\)\\.get\\('USdZGa2vqGuUstP7'\\); const nodes = JSON\\.parse\\(row\\.nodes\\); const agentNode = nodes\\.find\\(n => n\\.type && n\\.type\\.includes\\('agent'\\)\\); console\\.log\\('AGENT NODE KEYS:', Object\\.keys\\(agentNode\\)\\); console\\.log\\('AGENT NODE FULL:', JSON\\.stringify\\(agentNode, null, 2\\)\\);\"$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^node -e \"const \\{ DatabaseSync \\} = require\\('node:sqlite'\\); const db = new DatabaseSync\\('C:/Users/jiten/\\.n8n/database\\.sqlite', \\{ readOnly: true \\}\\); const row = db\\.prepare\\('SELECT \\* FROM workflow_entity WHERE id = \\?'\\)\\.get\\('USdZGa2vqGuUstP7'\\); const keys = Object\\.keys\\(row\\); console\\.log\\('WORKFLOW KEYS:', keys\\); console\\.log\\('\\\\\\\\nsettings:', row\\.settings\\); console\\.log\\('\\\\\\\\nmeta:', row\\.meta\\); console\\.log\\('\\\\\\\\npinData:', row\\.pinData\\); console\\.log\\('\\\\\\\\nstaticData:', row\\.staticData\\);\"$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^node -e \"const \\{ DatabaseSync \\} = require\\('node:sqlite'\\); const db = new DatabaseSync\\('C:/Users/jiten/\\.n8n/database\\.sqlite', \\{ readOnly: true \\}\\); const row = db\\.prepare\\('SELECT nodes FROM workflow_entity WHERE id = \\?'\\)\\.get\\('USdZGa2vqGuUstP7'\\); const nodes = JSON\\.parse\\(row\\.nodes\\); const model = nodes\\.find\\(n => n\\.name === 'Google Gemini Chat Model1'\\); console\\.log\\('MODEL PARSED FULL:', JSON\\.stringify\\(model, null, 2\\)\\);\"$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^node -e \"const \\{ DatabaseSync \\} = require\\('node:sqlite'\\); const db = new DatabaseSync\\('C:/Users/jiten/\\.n8n/database\\.sqlite', \\{ readOnly: true \\}\\); const row = db\\.prepare\\('SELECT nodes FROM workflow_entity WHERE id = \\?'\\)\\.get\\('USdZGa2vqGuUstP7'\\); const nodes = JSON\\.parse\\(row\\.nodes\\); const agent = nodes\\.find\\(n => n\\.name === 'AI Agent1'\\); console\\.log\\(JSON\\.stringify\\(agent, null, 4\\)\\); console\\.log\\('\\\\\\\\n--- ALL NODE NAMES ---'\\); nodes\\.forEach\\(n => console\\.log\\(n\\.name, '\\|', n\\.type\\)\\);\"$/": {
+            "approve": true,
+            "matchCommandLine": true
+        }
+    }
+}

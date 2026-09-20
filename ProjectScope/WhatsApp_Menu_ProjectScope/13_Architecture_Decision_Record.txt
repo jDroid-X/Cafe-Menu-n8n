@@ -1,0 +1,33 @@
+13. ARCHITECTURE DECISION RECORD
+
+ADR-001: Configuration-first architecture
+Decision: Business values are stored in configuration/data rather than hard-coded in workflow nodes.
+Reason: Future restaurants should be onboarded through settings.
+
+ADR-002: Local demo first
+Decision: Default to local/mock integrations.
+Reason: Enables testing without paid external services and avoids credential blockers.
+
+ADR-003: Separate n8n runtime
+Decision: Demo uses an unused local port.
+Reason: Protects the user's existing n8n installation.
+
+ADR-004: SQLite for demo
+Decision: Use SQLite unless workspace constraints require another local store.
+Reason: Minimal setup and easy migration path.
+
+ADR-005: Adapter abstraction
+Decision: Provider integrations are behind adapters.
+Reason: Allows MOCK -> REAL transition without rewriting business logic.
+
+ADR-006: Google Sheets as reference-compatible data source
+Decision: Preserve the video's conceptual data model while allowing local storage for demo.
+Reason: The reference uses Google Sheets for inventory, FAQ and orders.
+
+ADR-007: Truthful failure states
+Decision: Never report success when a tool or integration fails.
+Reason: Restaurant ordering is transactional and false confirmations are harmful.
+
+ADR-008: Production deferred
+Decision: Security hardening, scaling, payment, POS and delivery integrations are future phases.
+Reason: Current goal is a configurable demo matching the reference workflow.

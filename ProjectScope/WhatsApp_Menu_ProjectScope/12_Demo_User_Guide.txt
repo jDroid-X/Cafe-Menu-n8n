@@ -1,0 +1,36 @@
+12. DEMO USER GUIDE
+
+1. Open Dashboard.
+2. Confirm DEMO MODE.
+3. Open Restaurant and verify restaurant name.
+4. Open Menu and inspect Vada Pav and Misal Pav.
+5. Open FAQ and inspect opening-hours and delivery questions.
+6. Open AI Agent and review rules.
+7. Open Memory and verify configured context length.
+8. Open n8n Runtime and verify the dedicated demo port.
+9. Open Test Console.
+
+TRY THESE:
+A. "Hi"
+B. "What is available?"
+C. "What are your opening hours?"
+D. "I want Vada Pav"
+E. "My name is Demo User, two Vada Pav"
+F. Ask for an unavailable item.
+G. Ask a follow-up question that depends on earlier context.
+
+VERIFY:
+- Available items are listed.
+- FAQ answer is data-driven.
+- Missing order details are requested.
+- Order is saved after confirmation.
+- Unavailable items are not falsely accepted.
+- Conversation context is maintained.
+
+ONLINE DEMO
+If online integrations are configured:
+- switch WhatsApp to REAL;
+- switch data source to Google;
+- switch LLM to Gemini;
+- run connection tests;
+- execute the same test cases.

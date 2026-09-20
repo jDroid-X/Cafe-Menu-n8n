@@ -1,0 +1,126 @@
+6. CONFIGURATION SPECIFICATION
+
+6.1 DESIGN PRINCIPLE
+Configuration is grouped by context. The user should not need to understand n8n node internals to operate the future product.
+
+GROUP 1: RESTAURANT
+- Restaurant Name
+- Welcome Message
+- Currency
+- Time Zone
+- Opening Hours
+- Delivery Enabled
+- Contact Number
+
+GROUP 2: MENU
+- Menu source
+- Item fields
+- Availability mode
+- Inventory validation
+- Price source
+- Category list
+
+GROUP 3: FAQ
+- FAQ source
+- FAQ sheet/table
+- Search mode
+- Default fallback answer
+
+GROUP 4: AI AGENT
+- Provider
+- Model
+- Temperature/creativity if supported
+- System prompt sections
+- Response language
+- Maximum response length
+- Tool usage rules
+- Fallback behavior
+
+GROUP 5: MEMORY
+- Enabled
+- Memory provider
+- Maximum messages
+- Session key
+- Expiry
+- Reset policy
+
+GROUP 6: WHATSAPP
+- MOCK/REAL
+- App ID
+- App Secret reference
+- Access Token reference
+- Business Account ID
+- Phone Number ID
+- Recipient/test number
+- Webhook settings
+- Send message settings
+
+GROUP 7: GOOGLE SHEETS
+- LOCAL/GOOGLE
+- Spreadsheet ID
+- Spreadsheet name
+- Inventory sheet
+- Orders sheet
+- FAQ sheet
+- Column mapping
+- OAuth credential reference
+
+GROUP 8: N8N
+- Demo host
+- Demo port
+- Workflow name
+- Execution mode
+- Webhook URL
+- Activation
+- Timeout
+- Retry
+- Logging
+
+GROUP 9: DEMO / OFFLINE
+- Demo mode ON/OFF
+- Mock WhatsApp ON/OFF
+- Mock LLM ON/OFF
+- Local data ON/OFF
+- Seed demo data
+- Reset demo data
+- Test latency
+- Failure simulation
+
+GROUP 10: SECURITY
+- Secret storage mode
+- Mask secrets
+- Session timeout
+- Admin access
+- Audit logging
+
+6.2 ONLINE/OFFLINE DECISION LOGIC
+If DEMO MODE = ON:
+  prefer local data and mock adapters.
+If DEMO MODE = OFF:
+  validate all production integrations before activation.
+If provider credentials are missing:
+  show BLOCKED state, not a fake READY state.
+
+6.3 CONFIGURATION VERSIONING
+Every save creates:
+- configuration version
+- timestamp
+- changed sections
+- changed by
+- validation result
+
+6.4 VALIDATION LEVELS
+GREEN = configured and health check passed.
+AMBER = configured but not tested.
+RED = missing/invalid configuration.
+GREY = intentionally disabled.
+
+6.5 RESET
+Reset Demo must restore:
+- restaurant sample
+- menu sample
+- FAQ sample
+- empty orders
+- demo configuration
+- mock adapters
+It must not delete production credentials or existing n8n workflows.

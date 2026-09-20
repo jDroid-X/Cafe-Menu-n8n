@@ -1,0 +1,46 @@
+11. LOCAL DEMO RUNBOOK
+
+PURPOSE
+Run the WhatsApp Restaurant Menu demo without disturbing the existing local n8n.
+
+STARTUP
+1. Open the project in Antigravity.
+2. Inspect existing n8n processes.
+3. Identify the current n8n port.
+4. Select an unused port for the demo.
+5. Start the demo application.
+6. Start the isolated demo n8n process.
+7. Open the demo dashboard.
+8. Verify all status cards.
+
+DEFAULT MODE
+DEMO MODE = ON
+WHATSAPP = MOCK
+LLM = MOCK or configured local provider
+DATA = LOCAL
+
+ONLINE MODE
+Only enable after credentials are configured and health checks pass.
+
+STOP
+Stop only the demo application and demo n8n process.
+Do not stop or reconfigure the existing n8n.
+
+RESET
+Use Demo Control -> Reset Demo Data.
+This must restore sample data only.
+
+TROUBLESHOOTING
+If port is busy:
+- choose another unused port.
+If n8n fails:
+- show process/log error.
+If LLM unavailable:
+- use mock adapter if enabled.
+If WhatsApp credentials are absent:
+- remain in mock mode.
+If Google authorization is absent:
+- remain in local data mode.
+
+PRODUCTION NOTE
+This runbook is for demo only. Production deployment requires authentication, secret management, backups, monitoring, rate limiting, provider verification and a persistent production database.

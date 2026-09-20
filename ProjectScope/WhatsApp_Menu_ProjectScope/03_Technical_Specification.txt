@@ -1,0 +1,134 @@
+3. TECHNICAL SPECIFICATION
+
+3.1 ARCHITECTURE
+Frontend
+  -> Configuration API / Local service
+  -> Demo Configuration Store
+  -> n8n Demo Instance
+  -> AI Agent workflow
+  -> Mock or Online adapters
+  -> Response/Test Console
+
+Logical n8n flow:
+WhatsApp Trigger
+ -> Normalize Incoming Message
+ -> AI Agent
+    -> Gemini Chat Model
+    -> Simple Memory
+    -> Get Inventory
+    -> Get FAQ
+    -> Post Orders
+ -> WhatsApp Send Message
+
+3.2 FRONTEND
+Recommended demo stack:
+- React or lightweight HTML/CSS/JS frontend.
+- Local API service.
+- Responsive desktop-first layout.
+- No dependency on cloud hosting.
+
+Required screens:
+1. Dashboard
+2. Restaurant Profile
+3. Menu / Inventory
+4. FAQ
+5. AI Agent Configuration
+6. Memory Configuration
+7. WhatsApp Configuration
+8. Google Sheets Configuration
+9. n8n Runtime Configuration
+10. Demo Mode / Adapters
+11. Integration Health
+12. Test Console
+13. Audit / Event Log
+
+3.3 BACKEND
+Recommended:
+- Lightweight local API service.
+- REST-style endpoints.
+- Configuration validation service.
+- Adapter abstraction:
+  MOCK_WHATSAPP
+  REAL_WHATSAPP
+  MOCK_LLM
+  GEMINI
+  LOCAL_LLM
+  LOCAL_DATA
+  GOOGLE_SHEETS
+- n8n lifecycle controller for the DEMO instance only.
+
+3.4 DATABASE
+For demo, SQLite is preferred.
+
+Core tables:
+restaurant_config
+menu_items
+faq_items
+orders
+conversation_sessions
+conversation_messages
+integration_config
+agent_config
+memory_config
+n8n_config
+audit_log
+
+3.5 MINIMUM DATA MODEL
+restaurant_config:
+id, restaurant_name, welcome_message, currency, timezone, active
+
+menu_items:
+id, item_code, item_name, description, price, quantity, status, category, active
+
+faq_items:
+id, question, answer, category, active
+
+orders:
+id, customer_name, customer_phone, item_name, quantity, unit_price, total, order_date, status, source
+
+conversation_sessions:
+id, customer_key, started_at, last_activity, memory_enabled
+
+conversation_messages:
+id, session_id, direction, message_text, timestamp
+
+integration_config:
+id, provider, mode, endpoint, credential_reference, enabled
+
+agent_config:
+id, system_message, restaurant_rules, response_language, enabled
+
+memory_config:
+id, enabled, memory_type, max_messages, session_key_expression
+
+n8n_config:
+id, host, port, workflow_name, webhook_base_url, execution_mode, enabled
+
+3.6 SECURITY
+- Never store raw secrets in UI-readable database fields.
+- Use environment variables or encrypted local secret storage.
+- Mask tokens in UI.
+- Separate demo credentials from production credentials.
+- Do not log access tokens.
+- Provide Reset Demo Data.
+- Provide Export/Import configuration without exporting secrets by default.
+
+3.7 N8N RUNTIME
+The demo must use a separate local port.
+Before startup:
+- Detect existing n8n listeners.
+- Select an unused port from a configured safe range.
+- Store the selected port in n8n_config.
+- Start the demo instance without changing the existing instance.
+- Display the selected URL in the UI.
+
+3.8 WORKFLOW IMPORT
+If the official example workflow JSON is available, Antigravity may use it as a structural reference, but credentials must be replaced and no secret from the source file may be reused.
+
+3.9 OBSERVABILITY
+- Workflow execution status.
+- Last successful execution.
+- Last error.
+- Integration health.
+- Request/response test trace.
+- Configuration version.

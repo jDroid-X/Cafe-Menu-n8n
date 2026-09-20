@@ -1,0 +1,95 @@
+7. CONFIGURATION UI SCREEN SPECIFICATION
+
+SCREEN 01: DASHBOARD
+Cards:
+- Demo Runtime
+- n8n
+- AI
+- WhatsApp
+- Data Store
+- Last Execution
+
+SCREEN 02: RESTAURANT
+Sections:
+Identity / Business Hours / Ordering Rules / Delivery
+
+SCREEN 03: MENU
+Table:
+Code | Item | Category | Price | Quantity | Status | Active | Actions
+
+SCREEN 04: FAQ
+Table:
+Category | Question | Answer | Active | Actions
+
+SCREEN 05: AI AGENT
+Tabs:
+Identity
+Business Rules
+Order Rules
+Inventory Rules
+FAQ Rules
+Response Style
+Language
+Fallback
+Advanced
+
+SCREEN 06: MEMORY
+Controls:
+Enable
+Memory Type
+Max Messages
+Session Key
+Expiry
+Reset
+
+SCREEN 07: WHATSAPP
+Mode selector:
+MOCK / REAL
+Then provider fields.
+Buttons:
+Save
+Validate
+Test Connection
+Send Test Message
+
+SCREEN 08: GOOGLE SHEETS
+Mode:
+LOCAL / GOOGLE
+Then document and sheet mappings.
+Buttons:
+Validate
+Test Inventory
+Test FAQ
+Test Order
+
+SCREEN 09: N8N RUNTIME
+Fields:
+Host
+Port
+Workflow Name
+Execution Mode
+Timeout
+Retry
+Log Level
+Buttons:
+Find Free Port
+Start Demo
+Stop Demo
+Open n8n
+Health Check
+
+SCREEN 10: DEMO CONTROL
+Buttons:
+Seed Data
+Reset Data
+Run End-to-End Test
+Simulate LLM Failure
+Simulate Inventory Failure
+Simulate WhatsApp Failure
+
+SCREEN 11: TEST CONSOLE
+Chat-like UI plus technical trace.
+
+SCREEN 12: AUDIT
+Filter:
+Date / Component / Severity / Event

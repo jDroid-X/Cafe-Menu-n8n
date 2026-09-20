@@ -1,0 +1,65 @@
+8. TEST AND ACCEPTANCE PLAN
+
+T01 Startup
+Expected: demo n8n starts on an unused local port; existing n8n remains untouched.
+
+T02 Configuration Save
+Edit restaurant name and welcome message.
+Expected: values persist and appear in runtime behavior.
+
+T03 Inventory Query
+Input: "What is available?"
+Expected: only available menu items are returned.
+
+T04 FAQ
+Input: "What are your opening hours?"
+Expected: answer comes from FAQ data.
+
+T05 Order Missing Quantity
+Input: "I want Vada Pav."
+Expected: agent asks for quantity and any other required missing detail.
+
+T06 Order Complete
+Input: "MBS Coding, two Vada Pav."
+Expected: order is saved and confirmation is returned.
+
+T07 Unavailable Item
+Input: request an unavailable item.
+Expected: item is not confirmed; alternatives may be offered.
+
+T08 Memory
+Tell agent customer name, then ask a follow-up that depends on the name.
+Expected: context is retained within configured memory limit.
+
+T09 Invalid Inventory
+Simulate inventory failure.
+Expected: agent does not invent stock.
+
+T10 LLM Failure
+Simulate LLM failure.
+Expected: mock fallback if enabled; otherwise explicit failure.
+
+T11 WhatsApp Mock
+Send test message.
+Expected: mock inbound/outbound path works.
+
+T12 Online Credential Missing
+Disable a required credential.
+Expected: status RED/BLOCKED and no false success.
+
+T13 Google Sheet Mode
+If online Sheets is configured, verify read/write.
+Expected: inventory and FAQ read; order append.
+
+T14 Workflow Activation
+Activate demo workflow.
+Expected: status becomes active and execution can be observed.
+
+T15 Regression
+Run all previous tests after configuration change.
+Expected: no unrelated behavior breaks.
+
+ACCEPTANCE GATE
+All T01-T12 must pass for Demo v0.1.
+T13-T14 are required when online integrations are enabled.
+T15 must pass after every workflow/configuration structural change.

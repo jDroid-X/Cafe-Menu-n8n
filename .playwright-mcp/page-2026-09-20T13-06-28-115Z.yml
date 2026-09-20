@@ -1,0 +1,203 @@
+- generic [active] [ref=e1]:
+  - banner [ref=e2]:
+    - generic [ref=e3]:
+      - generic [ref=e4]: 🍽️
+      - generic [ref=e5]:
+        - generic [ref=e6]: jDroid-X- CafeMenu
+        - generic [ref=e7]: WhatsApp AI Ordering Desk & Executive Suite
+    - generic [ref=e8]:
+      - 'link "n8n: USdZGa2vqGuUstP7 (v42 Synced 🔄)" [ref=e9] [cursor=pointer]':
+        - /url: http://localhost:5678/workflow/USdZGa2vqGuUstP7
+      - generic "Switch between Demo (Mock) and Live (WhatsApp Cloud) modes" [ref=e12]:
+        - button "🧪 Demo" [ref=e13] [cursor=pointer]
+        - button "📡 Live" [ref=e14] [cursor=pointer]
+      - generic [ref=e15]: "WA: MOCK"
+      - generic [ref=e18]: "AI: MOCK"
+      - generic [ref=e21]: "Data: LOCAL"
+      - button "🌙 Dark Mode" [ref=e24] [cursor=pointer]:
+        - generic [ref=e25]: 🌙
+        - generic [ref=e26]: Dark Mode
+  - generic [ref=e27]:
+    - complementary [ref=e28]:
+      - generic [ref=e29]: Overview
+      - generic [ref=e30] [cursor=pointer]:
+        - generic [ref=e31]: 📊
+        - text: Executive Dashboard
+      - generic [ref=e32] [cursor=pointer]:
+        - generic [ref=e33]: 💬
+        - text: WhatsApp Simulator
+      - generic [ref=e34]: Restaurant Management
+      - generic [ref=e35] [cursor=pointer]:
+        - generic [ref=e36]: 🏪
+        - text: Cafe Profile
+      - generic [ref=e37] [cursor=pointer]:
+        - generic [ref=e38]: 📋
+        - text: Menu & Inventory
+      - generic [ref=e39] [cursor=pointer]:
+        - generic [ref=e40]: ❓
+        - text: FAQ Knowledge
+      - generic [ref=e41]: AI Engine & Rules
+      - generic [ref=e42] [cursor=pointer]:
+        - generic [ref=e43]: 🤖
+        - text: AI Prompt Rules (1-6)
+      - generic [ref=e44] [cursor=pointer]:
+        - generic [ref=e45]: 🧠
+        - text: Context Window
+      - generic [ref=e46]: Integrations & Workflows
+      - generic [ref=e47] [cursor=pointer]:
+        - generic [ref=e48]: 📱
+        - text: WhatsApp Cloud
+      - generic [ref=e49] [cursor=pointer]:
+        - generic [ref=e50]: 📑
+        - text: Google Sheets
+      - generic [ref=e51] [cursor=pointer]:
+        - generic [ref=e52]: ⚙️
+        - text: n8n Workflow & Multi-Store
+      - generic [ref=e53]: Diagnostics
+      - generic [ref=e54] [cursor=pointer]:
+        - generic [ref=e55]: 🧪
+        - text: Fault Simulation
+      - generic [ref=e56] [cursor=pointer]:
+        - generic [ref=e57]: 📜
+        - text: Audit Telemetry
+      - generic [ref=e58]:
+        - generic [ref=e59]:
+          - generic [ref=e60]: A
+          - generic [ref=e61]:
+            - generic [ref=e62]: admin@jdroidx.ai
+            - generic [ref=e63]: System Administrator
+        - button "🚪 Sign Out" [ref=e64] [cursor=pointer]:
+          - generic [ref=e65]: 🚪
+          - text: Sign Out
+    - main [ref=e66]:
+      - generic [ref=e67]:
+        - generic [ref=e68]:
+          - generic [ref=e69]: 📊 CFO Executive Dashboard & Telemetry
+          - button "🔄 Refresh Financials" [ref=e71] [cursor=pointer]
+        - generic [ref=e72]:
+          - generic [ref=e73]: "View Mode:"
+          - generic [ref=e74]:
+            - button "💰 Revenue (₹)" [ref=e75] [cursor=pointer]
+            - button "📦 Orders (Qty)" [ref=e76] [cursor=pointer]
+          - generic [ref=e77]: "Time Range:"
+          - generic [ref=e78]:
+            - button "Day" [ref=e79] [cursor=pointer]
+            - button "Week" [ref=e80] [cursor=pointer]
+            - button "Month" [ref=e81] [cursor=pointer]
+        - generic [ref=e82]:
+          - generic [ref=e83]:
+            - generic [ref=e84]:
+              - text: Total Gross Revenue
+              - generic [ref=e85]: 💰
+            - generic [ref=e86]: ₹₹730.00
+            - generic [ref=e87]: 6 Total Orders Total Orders Processed
+          - generic [ref=e88]:
+            - generic [ref=e89]:
+              - text: Today's Revenue
+              - generic [ref=e90]: 📈
+            - generic [ref=e91]: ₹₹730.00
+            - generic [ref=e92]: 6 Orders Today Orders Today
+          - generic [ref=e93]:
+            - generic [ref=e94]:
+              - text: Average Order Value (AOV)
+              - generic [ref=e95]: 🎯
+            - generic [ref=e96]: ₹₹121.67
+            - generic [ref=e97]: "Fulfillment Rate: 100%"
+          - generic [ref=e98]:
+            - generic [ref=e99]:
+              - text: Pending Receivables
+              - generic [ref=e100]: ⏳
+            - generic [ref=e101]: ₹₹260.00
+            - generic [ref=e102]: 3 Awaiting Orders Awaiting Payment
+        - generic [ref=e103]: 🧾 Real-Time Order Management (Expand for Full Details)
+        - table [ref=e106]:
+          - rowgroup [ref=e107]:
+            - row [ref=e108]:
+              - columnheader [ref=e109]
+              - 'columnheader "Order #" [ref=e110]'
+              - columnheader "Customer Name" [ref=e111]
+              - columnheader "Food Item & Qty" [ref=e112]
+              - columnheader "Total" [ref=e113]
+              - columnheader "Order Status" [ref=e114]
+              - columnheader "Payment" [ref=e115]
+              - columnheader "Time" [ref=e116]
+              - columnheader "Action" [ref=e117]
+          - rowgroup [ref=e118]:
+            - row [ref=e119]:
+              - cell "▶" [ref=e120] [cursor=pointer]
+              - cell [ref=e121]:
+                - strong [ref=e122]: "#ORD-492696"
+              - cell "Priya Sharma" [ref=e123]
+              - cell "2 x Misal Pav" [ref=e124]
+              - cell [ref=e125]:
+                - strong [ref=e126]: ₹140
+              - cell "Confirmed" [ref=e127]
+              - cell "Pending" [ref=e129]
+              - cell "11:58 AM" [ref=e131]
+              - cell [ref=e132]:
+                - button "Details" [ref=e133] [cursor=pointer]
+            - row [ref=e134]:
+              - cell "▶" [ref=e135] [cursor=pointer]
+              - cell [ref=e136]:
+                - strong [ref=e137]: "#ORD-492661"
+              - cell "MBS Coding" [ref=e138]
+              - cell "2 x Vada Pav" [ref=e139]
+              - cell [ref=e140]:
+                - strong [ref=e141]: ₹60
+              - cell "Confirmed" [ref=e142]
+              - cell "Pending" [ref=e144]
+              - cell "11:58 AM" [ref=e146]
+              - cell [ref=e147]:
+                - button "Details" [ref=e148] [cursor=pointer]
+            - row [ref=e149]:
+              - cell "▶" [ref=e150] [cursor=pointer]
+              - cell [ref=e151]:
+                - strong [ref=e152]: "#ORD-882104"
+              - cell "Amit Joshi" [ref=e153]
+              - cell "4 x Cutting Chai" [ref=e154]
+              - cell [ref=e155]:
+                - strong [ref=e156]: ₹60
+              - cell "Confirmed" [ref=e157]
+              - cell "Pending" [ref=e159]
+              - cell "11:58 AM" [ref=e161]
+              - cell [ref=e162]:
+                - button "Details" [ref=e163] [cursor=pointer]
+            - row [ref=e164]:
+              - cell "▶" [ref=e165] [cursor=pointer]
+              - cell [ref=e166]:
+                - strong [ref=e167]: "#ORD-882103"
+              - cell "Vikram Singh" [ref=e168]
+              - cell "2 x Butter Pav Bhaji" [ref=e169]
+              - cell [ref=e170]:
+                - strong [ref=e171]: ₹240
+              - cell "Accepted" [ref=e172]
+              - cell "Payment Received" [ref=e174]
+              - cell "11:58 AM" [ref=e176]
+              - cell [ref=e177]:
+                - button "Details" [ref=e178] [cursor=pointer]
+            - row [ref=e179]:
+              - cell "▶" [ref=e180] [cursor=pointer]
+              - cell [ref=e181]:
+                - strong [ref=e182]: "#ORD-882102"
+              - cell "Sunita Mehra" [ref=e183]
+              - cell "2 x Misal Pav" [ref=e184]
+              - cell [ref=e185]:
+                - strong [ref=e186]: ₹140
+              - cell "In Progress" [ref=e187]
+              - cell "COD" [ref=e189]
+              - cell "11:58 AM" [ref=e191]
+              - cell [ref=e192]:
+                - button "Details" [ref=e193] [cursor=pointer]
+            - row [ref=e194]:
+              - cell "▶" [ref=e195] [cursor=pointer]
+              - cell [ref=e196]:
+                - strong [ref=e197]: "#ORD-882101"
+              - cell "Rajesh Kumar" [ref=e198]
+              - cell "3 x Vada Pav" [ref=e199]
+              - cell [ref=e200]:
+                - strong [ref=e201]: ₹90
+              - cell "Delivered" [ref=e202]
+              - cell "Payment Received" [ref=e204]
+              - cell "11:58 AM" [ref=e206]
+              - cell [ref=e207]:
+                - button "Details" [ref=e208] [cursor=pointer]

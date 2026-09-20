@@ -1,0 +1,83 @@
+10. REQUIREMENT TRACEABILITY MATRIX
+
+BR-01 Restaurant configuration
+ -> UI: Restaurant
+ -> DB: restaurant_config
+ -> Test: T02
+
+BR-02 Menu/inventory
+ -> UI: Menu
+ -> DB: menu_items
+ -> n8n: Get Inventory
+ -> Test: T03
+
+BR-03 FAQ
+ -> UI: FAQ
+ -> DB: faq_items
+ -> n8n: Get FAQ
+ -> Test: T04
+
+BR-04 AI rules
+ -> UI: AI Agent
+ -> DB: agent_config
+ -> n8n: AI Agent System Message
+ -> Test: T07/T15
+
+BR-05 Memory
+ -> UI: Memory
+ -> DB: memory_config + conversation_messages
+ -> n8n: Simple Memory
+ -> Test: T08
+
+BR-06 WhatsApp
+ -> UI: WhatsApp
+ -> DB: integration_config
+ -> n8n: WhatsApp Trigger/Send
+ -> Test: T11/T14
+
+BR-07 Google Sheets
+ -> UI: Google Sheets
+ -> DB: integration_config
+ -> n8n: Google Sheets tools
+ -> Test: T13
+
+BR-08 Menu query
+ -> UI: Test Console
+ -> n8n: Get Inventory
+ -> Test: T03
+
+BR-09 FAQ
+ -> n8n: Get FAQ
+ -> Test: T04
+
+BR-10 Order
+ -> n8n: Post Orders
+ -> DB/Sheet: orders
+ -> Test: T05/T06
+
+BR-11 Availability validation
+ -> n8n: Get Inventory + Agent Rules
+ -> Test: T07
+
+BR-12 Missing data collection
+ -> n8n: Agent
+ -> Test: T05
+
+BR-13 Order persistence
+ -> n8n: Post Orders
+ -> DB: orders
+ -> Test: T06
+
+BR-14 Context
+ -> n8n: Simple Memory
+ -> Test: T08
+
+BR-16 Health status
+ -> UI: Dashboard
+ -> DB: audit_log/integration_config
+ -> Test: T01/T12
+
+SAFETY
+Existing n8n untouched
+ -> Runtime isolation
+ -> Test: T01

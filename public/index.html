@@ -1,0 +1,907 @@
+﻿<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>jDroid-X- CafeMenu — WhatsApp Ordering & Executive AI Desk</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+    <!-- AUTHENTICATION OVERLAY / LOGIN PAGE -->
+    <div id="auth-overlay" class="auth-overlay">
+        <div class="auth-card">
+            <div class="auth-header">
+                <div class="auth-logo">🍽️</div>
+                <h2 style="font-size: 18px; font-weight: 700; color: var(--text-main);">jDroid-X- CafeMenu</h2>
+                <p style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">Executive AI Food Ordering & Operations Desk</p>
+            </div>
+            <form id="form-login">
+                <div class="form-group">
+                    <label for="login-email">Executive User / Email</label>
+                    <input type="email" id="login-email" value="admin@jdroidx.ai" required>
+                </div>
+                <div class="form-group">
+                    <label for="login-password">Password</label>
+                    <input type="password" id="login-password" value="admin123" required>
+                </div>
+                <div class="form-group">
+                    <label for="login-role">Operational Role</label>
+                    <select id="login-role">
+                        <option value="CFO / Executive">CFO / Executive Director</option>
+                        <option value="Store Manager">Store & Kitchen Manager</option>
+                        <option value="System Admin" selected>System Administrator</option>
+                    </select>
+                </div>
+
+                <div style="display: flex; gap: 6px; margin: 10px 0; font-size: 11px;">
+                    <span style="color: var(--text-dim);">Quick Demo Fill:</span>
+                    <a href="#" style="color: var(--brand-primary); text-decoration: none;" onclick="App.setLoginDemo('admin@jdroidx.ai', 'admin123', 'System Admin'); return false;">Admin</a> |
+                    <a href="#" style="color: var(--brand-primary); text-decoration: none;" onclick="App.setLoginDemo('cfo@jdroidx.ai', 'cfo123', 'CFO / Executive'); return false;">CFO</a> |
+                    <a href="#" style="color: var(--brand-primary); text-decoration: none;" onclick="App.setLoginDemo('manager@jdroidx.ai', 'mgr123', 'Store Manager'); return false;">Manager</a>
+                </div>
+
+                <button type="submit" class="btn btn-primary" style="width: 100%; padding: 9px; margin-top: 6px;">Sign In to Executive Console</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- TOP HEADER -->
+    <header class="app-header">
+        <div class="brand-container">
+            <div class="brand-logo">🍽️</div>
+            <div>
+                <div class="brand-title">jDroid-X- CafeMenu</div>
+                <div class="brand-subtitle">WhatsApp AI Ordering Desk & Executive Suite</div>
+            </div>
+        </div>
+        <div class="header-status-bar">
+            <!-- Active n8n pill linking directly to user workflow -->
+            <a href="http://localhost:5678/workflow/USdZGa2vqGuUstP7" target="_blank" class="status-pill sync-pill" style="text-decoration: none; color: inherit;" title="n8n Workflow USdZGa2vqGuUstP7 — Live Two-Way Sync Active">
+                <span class="status-dot green pulse" id="n8n-live-dot"></span>
+                <span id="status-runtime-text">n8n: USdZGa2vqGuUstP7 (Synced 🔄)</span>
+            </a>
+
+            <!-- DEMO / LIVE ENVIRONMENT TOGGLE -->
+            <div class="env-toggle-container" id="env-toggle" title="Switch between Demo (Mock) and Live (WhatsApp Cloud) modes">
+                <button class="env-toggle-option active-demo" id="env-btn-demo" onclick="App.setEnvironmentMode('DEMO')">🧪 Demo</button>
+                <button class="env-toggle-option" id="env-btn-live" onclick="App.setEnvironmentMode('LIVE')">📡 Live</button>
+            </div>
+
+            <div class="status-pill">
+                <span class="status-dot green"></span>
+                <span id="status-wa-text">WA: MOCK</span>
+            </div>
+            <div class="status-pill">
+                <span class="status-dot green"></span>
+                <span id="status-llm-text">AI: MOCK</span>
+            </div>
+            <div class="status-pill">
+                <span class="status-dot green"></span>
+                <span id="status-data-text">Data: LOCAL</span>
+            </div>
+
+            <!-- THEME SWITCHER -->
+            <button id="btn-theme-toggle" class="theme-toggle-btn" title="Toggle Light / Dark Mode">
+                <span id="theme-toggle-icon">☀️</span>
+                <span id="theme-toggle-label">Light Mode</span>
+            </button>
+        </div>
+    </header>
+
+    <div class="app-container">
+        <!-- SIDEBAR NAVIGATION -->
+        <aside class="app-sidebar">
+            <div class="nav-section-title">Overview</div>
+            <a class="nav-item active" data-screen="dashboard">
+                <span class="icon">📊</span> Executive Dashboard
+            </a>
+            <a class="nav-item" data-screen="test-console">
+                <span class="icon">💬</span> WhatsApp Simulator
+            </a>
+
+            <div class="nav-section-title">Restaurant Management</div>
+            <a class="nav-item" data-screen="restaurant">
+                <span class="icon">🏪</span> Cafe Profile
+            </a>
+            <a class="nav-item" data-screen="menu">
+                <span class="icon">📋</span> Menu & Inventory
+            </a>
+            <a class="nav-item" data-screen="faq">
+                <span class="icon">❓</span> FAQ Knowledge
+            </a>
+
+            <div class="nav-section-title">AI Engine & Rules</div>
+            <a class="nav-item" data-screen="n8n" data-stage="stage-4-rules" onclick="App.navigateToStage('n8n','stage-4-rules'); return false;">
+                <span class="icon">🤖</span> AI Prompt Rules (1-6)
+            </a>
+            <a class="nav-item" data-screen="n8n" data-stage="stage-2-memory" onclick="App.navigateToStage('n8n','stage-2-memory'); return false;">
+                <span class="icon">🧠</span> Context Window
+            </a>
+
+            <div class="nav-section-title">Integrations & Workflows</div>
+            <a class="nav-item" data-screen="n8n" data-stage="stage-1-whatsapp" onclick="App.navigateToStage('n8n','stage-1-whatsapp'); return false;">
+                <span class="icon">📱</span> WhatsApp Cloud
+            </a>
+            <a class="nav-item" data-screen="n8n" data-stage="stage-5-data" onclick="App.navigateToStage('n8n','stage-5-data'); return false;">
+                <span class="icon">📑</span> Google Sheets
+            </a>
+            <a class="nav-item" data-screen="n8n">
+                <span class="icon">⚙️</span> n8n Workflow & Multi-Store
+            </a>
+
+            <div class="nav-section-title">Diagnostics</div>
+            <a class="nav-item" data-screen="demo-control">
+                <span class="icon">🧪</span> Fault Simulation
+            </a>
+            <a class="nav-item" data-screen="audit">
+                <span class="icon">📜</span> Audit Telemetry
+            </a>
+
+            <!-- PINNED BOTTOM-LEFT LOGOUT WIDGET -->
+            <div class="sidebar-footer">
+                <div class="user-profile-badge">
+                    <div class="user-avatar" id="sidebar-avatar">A</div>
+                    <div class="user-info">
+                        <div class="user-name" id="sidebar-username">admin@jdroidx.ai</div>
+                        <div class="user-role" id="sidebar-role">System Administrator</div>
+                    </div>
+                </div>
+                <button class="btn-logout" id="btn-logout">
+                    <span>🚪</span> Sign Out
+                </button>
+            </div>
+        </aside>
+
+        <!-- MAIN VIEWPORT -->
+        <main class="content-area">
+
+            <!-- SCREEN 01: EXECUTIVE DASHBOARD (CFO LEVEL) -->
+            <section id="screen-dashboard" class="screen-view active">
+                <div class="section-header">
+                    <div class="section-title">📊 CFO Executive Dashboard & Telemetry</div>
+                    <div class="btn-group">
+                        <button class="btn btn-secondary" onclick="App.loadDashboardData()">🔄 Refresh Financials</button>
+                    </div>
+                </div>
+
+                <!-- CFO METRIC MODE & TEMPORAL CONTROLS -->
+                <div class="cfo-controls-bar">
+                    <div style="font-size:11px; color:var(--text-dim); font-weight:500;">View Mode:</div>
+                    <div class="metric-toggle-container" id="cfo-metric-toggle">
+                        <button class="metric-toggle-btn active" id="cfo-btn-revenue" onclick="App.setDashboardMetricMode('revenue')">💰 Revenue (₹)</button>
+                        <button class="metric-toggle-btn" id="cfo-btn-orders" onclick="App.setDashboardMetricMode('orders')">📦 Orders (Qty)</button>
+                    </div>
+                    <div style="font-size:11px; color:var(--text-dim); font-weight:500;">Time Range:</div>
+                    <div class="temporal-filter-container" id="cfo-temporal-filter">
+                        <button class="temporal-btn active" id="cfo-time-day" onclick="App.setDashboardTimeRange('day')">Day</button>
+                        <button class="temporal-btn" id="cfo-time-week" onclick="App.setDashboardTimeRange('week')">Week</button>
+                        <button class="temporal-btn" id="cfo-time-month" onclick="App.setDashboardTimeRange('month')">Month</button>
+                    </div>
+                </div>
+
+                <!-- CFO FINANCIAL TILES -->
+                <div class="card-grid">
+                    <div class="card card-accent-emerald">
+                        <div class="card-title">Total Gross Revenue <span>💰</span></div>
+                        <div class="card-value">₹<span id="cfo-total-revenue">0.00</span></div>
+                        <div class="card-subtitle"><span id="cfo-order-count">0</span> Total Orders Processed</div>
+                    </div>
+                    <div class="card card-accent-blue">
+                        <div class="card-title">Today's Sales <span>📈</span></div>
+                        <div class="card-value">₹<span id="cfo-today-revenue">0.00</span></div>
+                        <div class="card-subtitle"><span id="cfo-today-orders">0</span> Orders Today</div>
+                    </div>
+                    <div class="card card-accent-purple">
+                        <div class="card-title">Average Order Value (AOV) <span>🎯</span></div>
+                        <div class="card-value">₹<span id="cfo-aov">0.00</span></div>
+                        <div class="card-subtitle">Fulfillment Rate: <span id="cfo-fulfillment">100%</span></div>
+                    </div>
+                    <div class="card card-accent-amber">
+                        <div class="card-title">Pending Receivables <span>⏳</span></div>
+                        <div class="card-value">₹<span id="cfo-pending-amount">0.00</span></div>
+                        <div class="card-subtitle"><span id="cfo-pending-orders">0</span> Orders Awaiting Payment</div>
+                    </div>
+                </div>
+
+                <!-- EXPANDABLE ORDERS TABLE -->
+                <div class="section-header" style="margin-top: 18px;">
+                    <div class="section-title">🧾 Real-Time Order Management (Expand for Full Details)</div>
+                </div>
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th style="width: 30px;"></th>
+                                <th>Order #</th>
+                                <th>Customer Name</th>
+                                <th>Food Item & Qty</th>
+                                <th>Total</th>
+                                <th>Order Status</th>
+                                <th>Payment</th>
+                                <th>Time</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="dash-orders-table-body">
+                            <!-- Populated dynamically with expandable rows -->
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- SCREEN 02: CAFE PROFILE -->
+            <section id="screen-restaurant" class="screen-view">
+                <div class="section-header">
+                    <div class="section-title">🏪 jDroid-X- CafeMenu Profile Configuration</div>
+                </div>
+                <div class="card">
+                    <form id="form-restaurant">
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label for="rest-name">Brand Name *</label>
+                                <input type="text" id="rest-name" value="jDroid-X- CafeMenu" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="rest-hours">Opening Hours *</label>
+                                <input type="text" id="rest-hours" value="09:00 AM - 11:00 PM" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="rest-contact">Owner / Desk Contact *</label>
+                                <input type="text" id="rest-contact" value="+95 1224567890" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="rest-currency">Currency Code</label>
+                                <input type="text" id="rest-currency" value="INR">
+                            </div>
+                            <div class="form-group">
+                                <label for="rest-symbol">Currency Symbol</label>
+                                <input type="text" id="rest-symbol" value="₹">
+                            </div>
+                            <div class="form-group" style="justify-content: flex-end;">
+                                <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+                                    <input type="checkbox" id="rest-delivery" checked> Enable Home Delivery
+                                </label>
+                            </div>
+                            <div class="form-group full-width">
+                                <label for="rest-welcome">Rule 1 Welcome Greeting Message *</label>
+                                <textarea id="rest-welcome" rows="4" required></textarea>
+                            </div>
+                        </div>
+                        <div style="margin-top: 14px;">
+                            <button type="submit" class="btn btn-primary">Save Profile Settings</button>
+                        </div>
+                    </form>
+                </div>
+            </section>
+
+            <!-- SCREEN 03: MENU & INVENTORY (WITH BULK CSV UPLOAD) -->
+            <section id="screen-menu" class="screen-view">
+                <div class="section-header">
+                    <div class="section-title">📋 Cafe Menu & Stock Inventory</div>
+                    <div class="btn-group">
+                        <input type="text" id="menu-search" placeholder="Search menu items..." style="width: 180px;">
+                        <button class="btn btn-secondary" id="btn-download-template" onclick="App.downloadMenuTemplate()">📥 Download Template</button>
+                        <button class="btn btn-secondary" id="btn-open-bulk-menu" onclick="App.openBulkModal()">📤 Bulk Upload CSV</button>
+                        <button class="btn btn-primary" id="btn-open-add-menu">+ Add Item</button>
+                    </div>
+                </div>
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Code</th>
+                                <th>Food Item</th>
+                                <th>Category</th>
+                                <th>Price</th>
+                                <th>Stock Qty</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="menu-table-body">
+                            <!-- Populated via App.loadMenuItems() -->
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- SCREEN 04: FAQ -->
+            <section id="screen-faq" class="screen-view">
+                <div class="section-header">
+                    <div class="section-title">❓ Restaurant FAQs (Knowledge Base)</div>
+                    <div class="btn-group">
+                        <input type="text" id="faq-search" placeholder="Search FAQs..." style="width: 180px;">
+                        <button class="btn btn-primary" id="btn-open-add-faq">+ Add FAQ</button>
+                    </div>
+                </div>
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Category</th>
+                                <th>Question</th>
+                                <th>Configured Answer</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="faq-table-body">
+                            <!-- Populated via App.loadFAQItems() -->
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- ============================================================ -->
+            <!-- UNIFIED N8N WORKFLOW PAGE: 7 CHRONOLOGICAL PIPELINE STAGES   -->
+            <!-- Screens 05-09 are now consolidated here                      -->
+            <!-- ============================================================ -->
+            <section id="screen-n8n" class="screen-view">
+                <div class="section-header">
+                    <div class="section-title">⚙️ n8n Workflow Pipeline — Chronological Configuration (:5678)</div>
+                    <div class="btn-group">
+                        <button type="button" class="btn btn-outline" id="btn-force-n8n-sync" onclick="App.syncN8nWorkflow()" style="border-color: var(--brand-primary); color: var(--brand-primary); font-weight: 600;">🔄 Force Sync &amp; Push to n8n</button>
+                        <a href="http://localhost:5678/workflow/USdZGa2vqGuUstP7" target="_blank" class="btn btn-secondary">Open Canvas in n8n ↗</a>
+                    </div>
+                </div>
+
+                <div style="background: rgba(37, 211, 102, 0.08); border: 1px solid rgba(37, 211, 102, 0.3); padding: 12px 16px; border-radius: 8px; margin-bottom: 20px; font-size: 13px; line-height: 1.6;">
+                    💡 <strong>Single Source of Truth &amp; Live Canvas Sync:</strong> Configure the entire WhatsApp ordering pipeline in chronological order below. All settings are saved to SQLite, credentials encrypted via AES-256, and pushed directly to n8n's canvas. Click <strong>Force Sync &amp; Push</strong> to synchronize instantly!
+                </div>
+
+                <form id="form-n8n-workflow-all" onsubmit="App.saveN8nWorkflowConfig(event)">
+
+                <!-- STAGE 1: INGESTION & TRIGGER (WhatsApp Cloud Settings) -->
+                <div class="pipeline-stage expanded" id="stage-1-whatsapp">
+                    <div class="pipeline-stage-header" onclick="App.togglePipelineStage('stage-1-whatsapp')">
+                        <div class="pipeline-stage-number">1</div>
+                        <div>
+                            <div class="pipeline-stage-title">📱 Ingestion &amp; Trigger — WhatsApp Cloud</div>
+                            <div class="pipeline-stage-subtitle">Incoming message webhook, Meta Graph API, Phone ID, Access Token</div>
+                        </div>
+                        <div class="pipeline-stage-chevron">▶</div>
+                    </div>
+                    <div class="pipeline-stage-body">
+                        <div class="card-grid" style="grid-template-columns: 1fr 1fr; margin-bottom: 0;">
+                            <div>
+                                <div class="form-group">
+                                    <label for="wa-mode">Operational Mode</label>
+                                    <select id="wa-mode">
+                                        <option value="MOCK">MOCK (Interactive Simulator &amp; Trace Engine)</option>
+                                        <option value="REAL">REAL (Meta WhatsApp Business Cloud API)</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="wa-endpoint">Graph API Base Endpoint</label>
+                                    <input type="text" id="wa-endpoint">
+                                </div>
+                                <div class="form-group">
+                                    <label>Status</label>
+                                    <div><span class="badge badge-available" id="wa-status-badge">READY</span></div>
+                                </div>
+                            </div>
+                            <div>
+                                <div class="form-group">
+                                    <label for="wa-config-json">Configuration JSON (Phone ID, App Secret, Token)</label>
+                                    <textarea id="wa-config-json" rows="5" style="font-family: var(--font-mono);"></textarea>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- STAGE 2: SESSION & MEMORY (Context Window) -->
+                <div class="pipeline-stage expanded" id="stage-2-memory">
+                    <div class="pipeline-stage-header" onclick="App.togglePipelineStage('stage-2-memory')">
+                        <div class="pipeline-stage-number">2</div>
+                        <div>
+                            <div class="pipeline-stage-title">🧠 Session &amp; Conversational Memory — Context Window</div>
+                            <div class="pipeline-stage-subtitle">Window Buffer Memory, context length, session key, expiry</div>
+                        </div>
+                        <div class="pipeline-stage-chevron">▶</div>
+                    </div>
+                    <div class="pipeline-stage-body">
+                        <div style="max-width: 600px;">
+                            <div class="form-group">
+                                <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+                                    <input type="checkbox" id="mem-enabled" checked> Enable Conversation Memory Context
+                                </label>
+                            </div>
+                            <div class="form-group">
+                                <label for="mem-type">Memory Buffer Type</label>
+                                <select id="mem-type">
+                                    <option value="WINDOW_BUFFER">Window Buffer (Sliding Last N Messages)</option>
+                                    <option value="SUMMARY">Summary Buffer</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="n8n-cfg-memory-window">Context Memory Window (Interaction Turns)</label>
+                                <input type="number" id="n8n-cfg-memory-window" min="2" max="50" value="10">
+                                <span style="font-size:11px; color:var(--text-dim);">Controls how many past customer interactions are retained in working memory.</span>
+                            </div>
+                            <div class="form-group">
+                                <label for="n8n-cfg-session-key">Session / Context Key Expression</label>
+                                <input type="text" id="n8n-cfg-session-key" value="chat_history" placeholder="e.g. chat_history">
+                                <span style="font-size:11px; color:var(--text-dim);">Memory key bound to LangChain memory buffer on the n8n canvas.</span>
+                            </div>
+                            <div class="form-group">
+                                <label for="n8n-cfg-memory-expiry">Memory Expiry Window (Minutes)</label>
+                                <input type="number" id="n8n-cfg-memory-expiry" value="60" min="5" max="1440">
+                            </div>
+                            <div style="background:rgba(255,255,255,0.03); border:1px solid var(--border-color); padding:10px; border-radius:6px; font-size:11.5px; color:var(--text-muted); margin-top:10px;">
+                                🛡️ <strong>Session Persistence:</strong> Prevents session hijacking and preserves multi-turn order details.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- STAGE 3: AI BRAIN & MODEL ENGINE (Google Gemini) -->
+                <div class="pipeline-stage expanded" id="stage-3-gemini">
+                    <div class="pipeline-stage-header" onclick="App.togglePipelineStage('stage-3-gemini')">
+                        <div class="pipeline-stage-number">3</div>
+                        <div>
+                            <div class="pipeline-stage-title">🤖 AI Brain &amp; Model Engine — Google Gemini Chat Model</div>
+                            <div class="pipeline-stage-subtitle">Model selection, API key (AES-256), temperature, tokens, Top-P, Top-K</div>
+                        </div>
+                        <div class="pipeline-stage-chevron">▶</div>
+                    </div>
+                    <div class="pipeline-stage-body">
+                        <div class="form-group">
+                            <label>Google Gemini Model Selection</label>
+                            <select id="n8n-cfg-model-name">
+                                <option value="models/gemini-1.5-flash">models/gemini-1.5-flash (Fast &amp; Cost-Effective)</option>
+                                <option value="models/gemini-1.5-pro">models/gemini-1.5-pro (High Reasoning)</option>
+                                <option value="models/gemini-2.0-flash">models/gemini-2.0-flash (Next-Gen)</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Gemini API Key (AES-256 Encrypted in n8n)</label>
+                            <div style="display:flex; gap:8px;">
+                                <input type="password" id="n8n-cfg-gemini-key" placeholder="Enter new API key or leave blank to keep existing" style="flex:1;">
+                                <button type="button" class="btn btn-secondary" style="padding:4px 10px; font-size:11px;" onclick="App.togglePasswordVisibility('n8n-cfg-gemini-key')">👁️ Show</button>
+                            </div>
+                            <span style="font-size:11px; color:var(--text-dim);" id="gemini-key-status">Status: Active Key Configured</span>
+                        </div>
+                        <div class="form-grid" style="grid-template-columns: 1fr 1fr; gap: 12px;">
+                            <div class="form-group"><label>Temperature (0.0 - 1.0)</label><input type="number" id="n8n-cfg-temperature" step="0.05" min="0" max="1" value="0.2"></div>
+                            <div class="form-group"><label>Max Output Tokens</label><input type="number" id="n8n-cfg-max-tokens" value="450"></div>
+                        </div>
+                        <div class="form-grid" style="grid-template-columns: 1fr 1fr; gap: 12px;">
+                            <div class="form-group"><label>Top P (Nucleus Sampling)</label><input type="number" id="n8n-cfg-top-p" step="0.05" min="0" max="1" value="0.95"></div>
+                            <div class="form-group"><label>Top K</label><input type="number" id="n8n-cfg-top-k" min="1" max="100" value="40"></div>
+                        </div>
+                        <div class="form-group"><label>Gemini API Host URL</label><input type="text" id="n8n-cfg-gemini-host" value="https://generativelanguage.googleapis.com"></div>
+                    </div>
+                </div>
+
+                <!-- STAGE 4: RULES & PROMPT ENGINE (AI Prompt Rules 1-6) -->
+                <div class="pipeline-stage expanded" id="stage-4-rules">
+                    <div class="pipeline-stage-header" onclick="App.togglePipelineStage('stage-4-rules')">
+                        <div class="pipeline-stage-number">4</div>
+                        <div>
+                            <div class="pipeline-stage-title">📜 Rules &amp; Prompt Engine — AI Prompt Rules (1-6)</div>
+                            <div class="pipeline-stage-subtitle">Role identity, greeting, order capture, FAQ policy, cancellation, formatting</div>
+                        </div>
+                        <div class="pipeline-stage-chevron">▶</div>
+                    </div>
+                    <div class="pipeline-stage-body">
+                        <div class="card-grid" style="grid-template-columns: 1.2fr 1fr;">
+                            <div>
+                                <div class="form-group"><label for="agent-identity">Role &amp; Identity</label><textarea id="agent-identity" rows="2" required></textarea></div>
+                                <div class="form-group"><label for="agent-rules-rest">Rule 1: First Message Greeting</label><textarea id="agent-rules-rest" rows="3" required></textarea></div>
+                                <div class="form-group"><label for="agent-rules-order">Rule 2: Step-by-Step Order &amp; Stock Verification</label><textarea id="agent-rules-order" rows="3" required></textarea></div>
+                                <div class="form-group"><label for="agent-rules-inv">Rule 4: Check Order &amp; Check Stock</label><textarea id="agent-rules-inv" rows="3" required></textarea></div>
+                                <div class="form-group"><label for="agent-rules-faq">Rule 3 &amp; 5: FAQ &amp; Cancellation Policy</label><textarea id="agent-rules-faq" rows="3" required></textarea></div>
+                                <div class="form-group"><label for="agent-style">Rule 6: WhatsApp Text Format (*stars* only)</label><input type="text" id="agent-style" required></div>
+                            </div>
+                            <div>
+                                <div class="card-title">Live Dynamic System Prompt <span>⚡</span></div>
+                                <div class="card-subtitle" style="margin-bottom:8px;">Dynamically assembled from database rules:</div>
+                                <div class="code-preview" id="agent-prompt-preview">Loading dynamic prompt...</div>
+                                <div style="margin-top:14px;">
+                                    <label>System Prompt Template (<code>{{BRAND_NAME}}</code>, <code>{{CONTACT_PHONE}}</code>, <code>{{OPENING_HOURS}}</code>)</label>
+                                    <textarea id="n8n-cfg-system-prompt" rows="8" style="width:100%; font-family:monospace; font-size:12px; background:var(--bg-primary); color:var(--text-main); padding:12px; border-radius:6px; border:1px solid var(--border-color); line-height:1.5; resize:vertical;" required></textarea>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- STAGE 5: DATA INTEGRATION TOOLS (Online/Offline) -->
+                <div class="pipeline-stage expanded" id="stage-5-data">
+                    <div class="pipeline-stage-header" onclick="App.togglePipelineStage('stage-5-data')">
+                        <div class="pipeline-stage-number">5</div>
+                        <div>
+                            <div class="pipeline-stage-title">📊 Data Integration Tools — Nodes 3, 4 &amp; 5</div>
+                            <div class="pipeline-stage-subtitle">Google Sheets (Online) or Local Files (Offline) for Inventory, FAQ, Orders</div>
+                        </div>
+                        <div class="pipeline-stage-chevron">▶</div>
+                    </div>
+                    <div class="pipeline-stage-body">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+                            <div style="font-size:12px; font-weight:600; color:var(--text-muted);">Data Source Mode:</div>
+                            <div class="data-toggle-container" id="data-tools-toggle">
+                                <button type="button" class="data-toggle-btn active-online" id="data-btn-online" onclick="App.setDataToolsMode('ONLINE')">🌐 Online (Google Sheets)</button>
+                                <button type="button" class="data-toggle-btn" id="data-btn-offline" onclick="App.setDataToolsMode('OFFLINE')">💾 Offline (Local Files)</button>
+                            </div>
+                        </div>
+
+                        <!-- ONLINE PANEL -->
+                        <div class="data-content-panel active" id="data-panel-online">
+                            <div class="form-group"><label>Shared Spreadsheet Document ID</label><input type="text" id="n8n-cfg-spreadsheet" value="restaurant_database" style="font-weight:600;"><div style="margin-top:4px;"><a id="n8n-sheets-open-link" href="#" target="_blank" style="font-size:11px; color:var(--brand-primary); text-decoration:none; display:none;">📂 Open in Google Sheets ↗</a></div></div>
+                            <div class="card-grid" style="grid-template-columns: 1fr 1fr 1fr; gap: 14px; margin-top: 14px;">
+                                <div style="background:var(--bg-primary); border:1px solid var(--border-color); padding:12px; border-radius:6px;">
+                                    <div style="font-weight:700; font-size:13px; color:var(--brand-primary); margin-bottom:8px;">Node 3: Get Inventory</div>
+                                    <div class="form-group"><label>Operation</label><select id="n8n-cfg-inv-op"><option value="read" selected>read</option></select></div>
+                                    <div class="form-group"><label>Sheet Tab</label><input type="text" id="n8n-cfg-sheet-inv" value="Inventory"></div>
+                                    <div class="form-group"><label>Range</label><input type="text" id="n8n-cfg-inv-range" value="A:G"></div>
+                                    <div class="form-group"><label>Header Row</label><input type="number" id="n8n-cfg-inv-header" value="1" min="1"></div>
+                                </div>
+                                <div style="background:var(--bg-primary); border:1px solid var(--border-color); padding:12px; border-radius:6px;">
+                                    <div style="font-weight:700; font-size:13px; color:var(--brand-primary); margin-bottom:8px;">Node 4: Get FAQ</div>
+                                    <div class="form-group"><label>Operation</label><select id="n8n-cfg-faq-op"><option value="read" selected>read</option></select></div>
+                                    <div class="form-group"><label>Sheet Tab</label><input type="text" id="n8n-cfg-sheet-faq" value="FAQ"></div>
+                                    <div class="form-group"><label>Range</label><input type="text" id="n8n-cfg-faq-range" value="A:D"></div>
+                                    <div class="form-group"><label>Header Row</label><input type="number" id="n8n-cfg-faq-header" value="1" min="1"></div>
+                                </div>
+                                <div style="background:var(--bg-primary); border:1px solid var(--border-color); padding:12px; border-radius:6px;">
+                                    <div style="font-weight:700; font-size:13px; color:var(--brand-primary); margin-bottom:8px;">Node 5: Post Orders</div>
+                                    <div class="form-group"><label>Operation</label><select id="n8n-cfg-orders-op"><option value="append" selected>append</option></select></div>
+                                    <div class="form-group"><label>Sheet Tab</label><input type="text" id="n8n-cfg-sheet-orders" value="Orders"></div>
+                                    <div class="form-group"><label>Mapping</label><select id="n8n-cfg-orders-mapping"><option value="autoMapInputData" selected>autoMapInputData</option><option value="defineBelow">defineBelow</option></select></div>
+                                    <div class="form-group"><label>Credential ID</label><input type="text" id="n8n-cfg-sheets-cred-id" readonly value="93xN3gnk32S67PtE" style="color:var(--text-muted); font-size:11px; background:var(--bg-secondary);" placeholder="Auto-detected from n8n"></div>
+                                </div>
+                            </div>
+                            <div style="margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--border-color);">
+                                <div style="display:flex; justify-content:space-between; align-items:center;">
+                                    <div style="font-weight:600; font-size:13px;">Google Sheets OAuth2 Credentials</div>
+                                    <button type="button" class="btn btn-secondary" style="font-size:11px; padding:3px 8px;" onclick="document.getElementById('oauth-creds-container').classList.toggle('active')">Toggle OAuth</button>
+                                </div>
+                                <div id="oauth-creds-container" class="oauth-collapse-container" style="display:none; margin-top:10px;">
+                                    <div class="form-grid" style="grid-template-columns: 1fr 1fr; gap:12px;">
+                                        <div class="form-group"><label>OAuth2 Client ID</label><input type="text" id="n8n-cfg-sheets-client-id" placeholder="xxxxx.apps.googleusercontent.com"></div>
+                                        <div class="form-group"><label>OAuth2 Client Secret</label><input type="password" id="n8n-cfg-sheets-client-secret" placeholder="Enter new secret"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- OFFLINE PANEL -->
+                        <div class="data-content-panel" id="data-panel-offline">
+                            <div style="background:rgba(245,158,11,0.08); border:1px solid rgba(245,158,11,0.3); padding:12px 16px; border-radius:8px; margin-bottom:16px; font-size:12px;">
+                                ⚠️ <strong>Offline Mode:</strong> Data from local JSON/CSV files instead of Google Sheets.
+                            </div>
+                            <div class="form-grid" style="grid-template-columns: 1fr 1fr 1fr; gap:14px;">
+                                <div class="form-group"><label>📦 Inventory File</label><input type="text" id="n8n-cfg-inv-local-path" value="data/menu_items.json"><button type="button" class="btn btn-secondary" style="padding:3px 8px; font-size:10.5px; margin-top:4px;">📁 Browse</button></div>
+                                <div class="form-group"><label>❓ FAQ File</label><input type="text" id="n8n-cfg-faq-local-path" value="data/faq_items.json"><button type="button" class="btn btn-secondary" style="padding:3px 8px; font-size:10.5px; margin-top:4px;">📁 Browse</button></div>
+                                <div class="form-group"><label>🧾 Orders File</label><input type="text" id="n8n-cfg-orders-local-path" value="data/orders.json"><button type="button" class="btn btn-secondary" style="padding:3px 8px; font-size:10.5px; margin-top:4px;">📁 Browse</button></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- STAGE 6: DISPATCH & EXECUTION -->
+                <div class="pipeline-stage expanded" id="stage-6-dispatch">
+                    <div class="pipeline-stage-header" onclick="App.togglePipelineStage('stage-6-dispatch')">
+                        <div class="pipeline-stage-number">6</div>
+                        <div>
+                            <div class="pipeline-stage-title">📤 Dispatch &amp; Execution — WhatsApp Send Response</div>
+                            <div class="pipeline-stage-subtitle">Outbound formatting, delivery confirmation, message trace</div>
+                        </div>
+                        <div class="pipeline-stage-chevron">▶</div>
+                    </div>
+                    <div class="pipeline-stage-body">
+                        <div class="card-grid" style="grid-template-columns: 1fr 1fr;">
+                            <div style="background:var(--bg-primary); border:1px solid var(--border-color); padding:14px; border-radius:8px;">
+                                <div style="font-weight:600; font-size:13px; color:var(--brand-primary); margin-bottom:10px;">Response Formatting</div>
+                                <div class="form-group"><label>Message Format</label><select id="n8n-cfg-response-format"><option value="whatsapp_bold" selected>WhatsApp *Bold* Markdown</option><option value="plain_text">Plain Text</option></select></div>
+                                <div class="form-group"><label style="display:flex; align-items:center; gap:8px; cursor:pointer;"><input type="checkbox" id="n8n-cfg-include-emoji" checked> Include Emojis</label></div>
+                            </div>
+                            <div style="background:var(--bg-primary); border:1px solid var(--border-color); padding:14px; border-radius:8px;">
+                                <div style="font-weight:600; font-size:13px; color:var(--brand-primary); margin-bottom:10px;">Delivery &amp; Trace</div>
+                                <div class="form-group"><label style="display:flex; align-items:center; gap:8px; cursor:pointer;"><input type="checkbox" id="n8n-cfg-trace-enabled" checked> Enable Technical Trace</label></div>
+                                <div class="form-group"><label style="display:flex; align-items:center; gap:8px; cursor:pointer;"><input type="checkbox" id="n8n-cfg-delivery-receipts" checked> Track Delivery Receipts</label></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- STAGE 7: TELEMETRY & TWO-WAY SYNC -->
+                <div class="pipeline-stage expanded" id="stage-7-sync">
+                    <div class="pipeline-stage-header" onclick="App.togglePipelineStage('stage-7-sync')">
+                        <div class="pipeline-stage-number">7</div>
+                        <div>
+                            <div class="pipeline-stage-title">🔄 Telemetry &amp; Two-Way Sync — Brand Identity &amp; n8n Runtime</div>
+                            <div class="pipeline-stage-subtitle">Multi-restaurant brand, live telemetry, version counter, force sync</div>
+                        </div>
+                        <div class="pipeline-stage-chevron">▶</div>
+                    </div>
+                    <div class="pipeline-stage-body">
+                        <div class="card-grid" style="grid-template-columns: 1fr 1fr;">
+                            <div>
+                                <div style="font-weight:600; font-size:13px; color:var(--brand-primary); margin-bottom:12px;">🏪 Multi-Restaurant Brand Identity</div>
+                                <div class="form-group"><label>Brand Name (One-Time Updates Everywhere)</label><input type="text" id="n8n-cfg-restaurant-name" required placeholder="jDroid-X- CafeMenu" style="font-weight: 700; color: var(--brand-primary);"></div>
+                                <div class="form-grid" style="grid-template-columns: 1fr 1fr; gap: 12px;">
+                                    <div class="form-group"><label>Owner Contact (Rule 5)</label><input type="text" id="n8n-cfg-contact-phone" required placeholder="+95 1224567890"></div>
+                                    <div class="form-group"><label>Operating Hours (Rule 3)</label><input type="text" id="n8n-cfg-hours" required placeholder="09:00 AM - 11:00 PM"></div>
+                                </div>
+                                <div class="form-grid" style="grid-template-columns: 1fr 1fr; gap: 12px;">
+                                    <div class="form-group"><label>Currency</label><div style="display:flex; gap:8px;"><input type="text" id="n8n-cfg-curr-symbol" value="₹" style="width: 50px; text-align:center;"><input type="text" id="n8n-cfg-curr-code" value="INR" style="flex:1;"></div></div>
+                                    <div class="form-group"><label>Min Order (₹)</label><input type="number" id="n8n-cfg-min-order" value="0"></div>
+                                </div>
+                                <div class="form-group" style="margin-top: 8px;"><label style="display:flex; align-items:center; gap:8px; cursor:pointer;"><input type="checkbox" id="n8n-cfg-delivery-enabled" checked><span>Enable Home Delivery</span></label></div>
+                            </div>
+                            <div>
+                                <div style="font-weight:600; font-size:13px; color:var(--brand-primary); margin-bottom:12px;">⚡ Live n8n Runtime Telemetry</div>
+                                <div style="font-size: 13px; line-height: 1.8;">
+                                    <div><strong>Target Workflow:</strong> <span id="n8n-workflow-name">CafeMenu Whatsapp</span></div>
+                                    <div><strong>Workflow ID:</strong> <code>USdZGa2vqGuUstP7</code></div>
+                                    <div><strong>Webhook URL:</strong> <code id="n8n-webhook-display">http://localhost:5678/webhook/whatsapp-restaurant</code></div>
+                                    <div><strong>Sync State:</strong> <span id="n8n-sync-status-badge" class="badge badge-success">SYNCED 🟢</span></div>
+                                    <div><strong>Version:</strong> <span id="n8n-version-counter">v5</span></div>
+                                    <div><strong>Nodes:</strong> <span id="n8n-node-count">7 Nodes</span></div>
+                                    <div><strong>Gemini:</strong> <span id="n8n-badge-gemini-cred" class="badge badge-available">CONFIGURED 🔑</span></div>
+                                    <div><strong>Sheets:</strong> <span id="n8n-badge-sheets-cred" class="badge badge-available">CONFIGURED 📊</span></div>
+                                    <div><strong>Last Synced:</strong> <span id="n8n-last-synced-time" style="color:var(--text-muted);">Active</span></div>
+                                </div>
+                                <div style="margin-top: 14px; display:flex; gap:8px;">
+                                    <button type="button" class="btn btn-primary" onclick="App.syncN8nWorkflow()" style="padding: 6px 14px; font-size: 12px;">🔄 Force Sync Now</button>
+                                    <a href="http://localhost:5678/workflow/USdZGa2vqGuUstP7" target="_blank" class="btn btn-secondary" style="padding: 6px 14px; font-size: 12px;">View Canvas ↗</a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ACTION BUTTONS -->
+                <div class="btn-group" style="margin-top: 16px; display:flex; gap:12px;">
+                    <button type="submit" class="btn btn-primary" id="btn-save-n8n-workflow" style="padding: 10px 24px; font-size: 14px;">💾 Save Configuration &amp; Sync Everywhere</button>
+                    <button type="button" class="btn btn-outline" onclick="App.syncN8nWorkflow()" style="padding: 10px 20px; font-size: 14px; border-color:var(--brand-primary); color:var(--brand-primary);">🔄 Force Sync &amp; Push to n8n</button>
+                    <span id="n8n-save-status-msg" style="font-size: 13px; font-weight: 600; color: var(--brand-primary); align-self: center;"></span>
+                </div>
+                </form>
+            </section>
+
+            <!-- Legacy hidden screen IDs for backward compatibility -->
+            <section id="screen-agent" class="screen-view" style="display:none !important;"></section>
+            <section id="screen-memory" class="screen-view" style="display:none !important;"></section>
+            <section id="screen-whatsapp" class="screen-view" style="display:none !important;"></section>
+            <section id="screen-sheets" class="screen-view" style="display:none !important;"></section>
+
+
+            <!-- SCREEN 10: DEMO CONTROLS -->
+            <section id="screen-demo-control" class="screen-view">
+                <div class="section-header">
+                    <div class="section-title">🧪 Diagnostics & Fault Injection Controls</div>
+                </div>
+
+                <div class="card-grid">
+                    <div class="card">
+                        <div class="card-title">Factory Reset <span>🔄</span></div>
+                        <p style="color:var(--text-muted); font-size:12px; margin-bottom: 12px;">
+                            Reset restaurant profile, menu (Vada Pav, Misal Pav, Paneer Tikka), and FAQs back to pristine reference demo data.
+                        </p>
+                        <button class="btn btn-danger" onclick="App.resetDemoData()">Reset All Demo Data</button>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-title">Simulation Failure Flags <span>⚠️</span></div>
+                        <p style="color:var(--text-muted); font-size:12px; margin-bottom: 10px;">
+                            Inject faults to verify truthfulness and graceful fallback per BR-16:
+                        </p>
+                        <div class="form-group">
+                            <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+                                <input type="checkbox" id="sim-llm-fail"> Simulate AI / LLM Service Failure
+                            </label>
+                        </div>
+                        <div class="form-group">
+                            <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+                                <input type="checkbox" id="sim-inv-fail"> Simulate Inventory Service Failure
+                            </label>
+                        </div>
+                        <div class="form-group">
+                            <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+                                <input type="checkbox" id="sim-wa-fail"> Simulate WhatsApp Dispatch Failure
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SCREEN 11: TEST CONSOLE & WHATSAPP SIMULATOR -->
+            <section id="screen-test-console" class="screen-view">
+                <div class="section-header">
+                    <div class="section-title">💬 WhatsApp Simulator & Live Technical Trace</div>
+                    <div class="btn-group">
+                        <button class="btn btn-secondary" id="btn-reset-chat-session">Reset Session Context</button>
+                    </div>
+                </div>
+
+                <!-- Quick Query Pills matching Images 1 & 2 -->
+                <div style="display: flex; gap: 7px; flex-wrap: wrap; margin-bottom: 12px;">
+                    <span style="font-size:11px; color:var(--text-dim); align-self:center;">Try Scenario:</span>
+                    <button class="btn btn-secondary quick-query-btn" data-query="Hi">Rule 1: "Hi"</button>
+                    <button class="btn btn-secondary quick-query-btn" data-query="Check stock Vada Pav">Rule 4: "Check stock Vada Pav"</button>
+                    <button class="btn btn-secondary quick-query-btn" data-query="Check order ORD-882101">Rule 4: "Check order ORD-882101"</button>
+                    <button class="btn btn-secondary quick-query-btn" data-query="I want to cancel my order">Rule 5: "Cancel my order"</button>
+                    <button class="btn btn-secondary quick-query-btn" data-query="I want Vada Pav">Rule 2: "I want Vada Pav" (Missing Qty)</button>
+                    <button class="btn btn-secondary quick-query-btn" data-query="Priya, 2 Misal Pav">Rule 2: "Priya, 2 Misal Pav" (Order)</button>
+                    <button class="btn btn-secondary quick-query-btn" data-query="Can I order 1 Paneer Tikka Pav?">Rule 2: "Paneer Tikka Pav" (Out of Stock)</button>
+                </div>
+
+                <div class="chat-container">
+                    <div class="whatsapp-mockup">
+                        <div class="whatsapp-header">
+                            <div class="whatsapp-avatar">jD</div>
+                            <div>
+                                <div style="font-weight:600; font-size:13px; color:#fff;">jDroid-X- CafeMenu</div>
+                                <div style="font-size:10px; color:#25d366;">WhatsApp Official Business Account</div>
+                            </div>
+                        </div>
+
+                        <div class="whatsapp-chat-body" id="whatsapp-messages">
+                            <div class="chat-bubble outbound">
+                                Welcome to *jDroid-X- CafeMenu* 🍽️<br/>
+                                How can I help you today?<br/>
+                                - 🛒 *Place an order*<br/>
+                                - ℹ️ *FAQ / Information*<br/>
+                                - 📦 *Check order / stock*
+                                <div class="chat-time">Just now</div>
+                            </div>
+                        </div>
+
+                        <div class="whatsapp-footer">
+                            <input type="text" id="chat-user-input" class="chat-input" placeholder="Type a message as a customer...">
+                            <button id="chat-send-btn" class="btn btn-primary" style="padding: 7px 16px;">Send</button>
+                        </div>
+                    </div>
+
+                    <div class="technical-trace">
+                        <div class="trace-title">
+                            <span>Technical Execution Trace</span>
+                            <span style="font-size:10px; color:var(--brand-primary);">Agentic Pipeline</span>
+                        </div>
+                        <div class="trace-content" id="trace-output">
+// Send a message on the left to inspect:
+// 1. Normalized Input
+// 2. Agent Reasoning & Decisions (Rules 1-6)
+// 3. Tools Called (Inventory / FAQ / Orders)
+// 4. Memory Context State
+// 5. Execution Latency
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SCREEN 12: AUDIT & EVENT LOG -->
+            <section id="screen-audit" class="screen-view">
+                <div class="section-header">
+                    <div class="section-title">📜 Audit Trail & System Telemetry Log</div>
+                    <div class="btn-group">
+                        <button class="btn btn-secondary" onclick="App.loadAuditLogs()">Refresh Logs</button>
+                        <button class="btn btn-danger" onclick="API.clearAuditLogs().then(() => App.loadAuditLogs())">Clear</button>
+                    </div>
+                </div>
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Timestamp</th>
+                                <th>Severity</th>
+                                <th>Component</th>
+                                <th>Event</th>
+                                <th>Details JSON</th>
+                            </tr>
+                        </thead>
+                        <tbody id="audit-table-body">
+                            <!-- Populated via App.loadAuditLogs() -->
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+        </main>
+    </div>
+
+    <!-- MODAL: ADD MENU ITEM -->
+    <div class="modal-backdrop" id="modal-add-menu">
+        <div class="modal-dialog">
+            <div class="section-header">
+                <div class="section-title">Add New Menu Item</div>
+                <button class="btn btn-secondary" id="btn-close-add-menu">✕</button>
+            </div>
+            <form id="form-add-menu">
+                <div class="form-group">
+                    <label for="new-menu-code">Item Code *</label>
+                    <input type="text" id="new-menu-code" placeholder="e.g. SP07" required>
+                </div>
+                <div class="form-group">
+                    <label for="new-menu-name">Food Item Name *</label>
+                    <input type="text" id="new-menu-name" placeholder="e.g. Samosa Pav" required>
+                </div>
+                <div class="form-group">
+                    <label for="new-menu-category">Category</label>
+                    <input type="text" id="new-menu-category" value="Snacks">
+                </div>
+                <div class="form-group">
+                    <label for="new-menu-price">Price (₹) *</label>
+                    <input type="number" id="new-menu-price" step="0.5" required>
+                </div>
+                <div class="form-group">
+                    <label for="new-menu-qty">Stock Quantity *</label>
+                    <input type="number" id="new-menu-qty" value="30" required>
+                </div>
+                <div class="form-group">
+                    <label for="new-menu-status">Availability Status</label>
+                    <select id="new-menu-status">
+                        <option value="AVAILABLE">AVAILABLE</option>
+                        <option value="OUT_OF_STOCK">OUT_OF_STOCK</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="new-menu-desc">Description</label>
+                    <input type="text" id="new-menu-desc" placeholder="Freshly prepared delicacy">
+                </div>
+                <div style="margin-top: 14px; display:flex; justify-content:flex-end; gap:8px;">
+                    <button type="submit" class="btn btn-primary">Save Item</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL: BULK MENU UPLOAD -->
+    <div class="modal-backdrop" id="modal-bulk-menu">
+        <div class="modal-dialog">
+            <div class="section-header">
+                <div class="section-title">Bulk Menu & Inventory Upload</div>
+                <button class="btn btn-secondary" onclick="App.closeBulkModal()">✕</button>
+            </div>
+            <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 12px;">
+                Upload a CSV file containing menu items. Required columns: <code>item_code, item_name, category, description, price, quantity, status</code>.
+            </p>
+            <div class="form-group">
+                <label>Select CSV File</label>
+                <input type="file" id="bulk-csv-input" accept=".csv" style="padding: 10px;">
+            </div>
+            <div id="bulk-preview-container" style="display: none; margin-top: 10px;">
+                <div style="font-size: 11.5px; font-weight: 600; color: var(--text-main); margin-bottom: 4px;">CSV Preview (<span id="bulk-count">0</span> items detected):</div>
+                <div class="code-preview" id="bulk-csv-preview" style="max-height: 140px;"></div>
+            </div>
+            <div style="margin-top: 16px; display:flex; justify-content:space-between; align-items:center;">
+                <button class="btn btn-secondary" onclick="App.downloadMenuTemplate()">Download Sample CSV</button>
+                <button class="btn btn-primary" id="btn-submit-bulk" onclick="App.submitBulkUpload()" disabled>Upload & Import</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: ADD FAQ -->
+    <div class="modal-backdrop" id="modal-add-faq">
+        <div class="modal-dialog">
+            <div class="section-header">
+                <div class="section-title">Add Restaurant FAQ</div>
+                <button class="btn btn-secondary" id="btn-close-add-faq">✕</button>
+            </div>
+            <form id="form-add-faq">
+                <div class="form-group">
+                    <label for="new-faq-category">Category</label>
+                    <input type="text" id="new-faq-category" value="General">
+                </div>
+                <div class="form-group">
+                    <label for="new-faq-question">Question *</label>
+                    <input type="text" id="new-faq-question" required>
+                </div>
+                <div class="form-group">
+                    <label for="new-faq-answer">Answer *</label>
+                    <textarea id="new-faq-answer" rows="3" required></textarea>
+                </div>
+                <div style="margin-top: 14px; display:flex; justify-content:flex-end; gap:8px;">
+                    <button type="submit" class="btn btn-primary">Save FAQ</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="js/api.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>

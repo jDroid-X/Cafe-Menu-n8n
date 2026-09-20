@@ -1,0 +1,6 @@
+[     514ms] TypeError: Cannot read properties of null (reading 'addEventListener')
+    at Object.bindForms (http://localhost:3000/js/app.js:1176:46)
+    at Object.init (http://localhost:3000/js/app.js:33:14)
+    at HTMLDocument.<anonymous> (http://localhost:3000/js/app.js:8:9)
+[     540ms] [VERBOSE] [DOM] Input elements should have autocomplete attributes (suggested: "current-password"): (More info: https://goo.gl/9p2vKq) @ http://localhost:3000/:0
+[     541ms] [VERBOSE] [DOM] Multiple forms should be contained in their own form elements; break up complex forms into ones that represent a single action: (More info: https://goo.gl/9p2vKq) %o @ http://localhost:3000/:0
