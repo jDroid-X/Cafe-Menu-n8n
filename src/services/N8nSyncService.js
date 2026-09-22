@@ -187,6 +187,13 @@ class N8nSyncService {
                 nodes = [];
             }
 
+            // Extract Webhook Node — get the actual registered path (may be a UUID or a named path)
+            const webhookNode = nodes.find(n =>
+                (n.type === 'n8n-nodes-base.webhook') ||
+                (n.type === 'n8n-nodes-base.whatsAppTrigger' && n.parameters?.path)
+            );
+            const actualWebhookPath = webhookNode?.parameters?.path || null;
+
             // Extract Agent Node
             const agentNode = nodes.find(n => n.type?.includes('agent') || n.name?.toLowerCase().includes('agent'));
             const systemMessage = agentNode?.parameters?.options?.systemMessage || '';
@@ -253,6 +260,12 @@ class N8nSyncService {
             this.lastVersionId = row.versionId;
             this.lastUpdatedAt = row.updatedAt;
 
+            // Build the actual live webhook URL from the real path registered in n8n
+            const n8nBaseUrl = 'http://localhost:5678';
+            const resolvedWebhookUrl = actualWebhookPath
+                ? `${n8nBaseUrl}/webhook/${actualWebhookPath}`
+                : `${n8nBaseUrl}/webhook/whatsapp-restaurant`;
+
             this.syncedState = {
                 synced: true,
                 workflowId: row.id,
@@ -285,7 +298,9 @@ class N8nSyncService {
                 syncSource: 'n8n:database.sqlite',
                 geminiCredentialConfigured: !!modelNode?.credentials?.googlePalmApi,
                 sheetsCredentialConfigured: !!sheetsCredentialId,
-                sheetsCredentialId: sheetsCredentialId || null
+                sheetsCredentialId: sheetsCredentialId || null,
+                webhookPath: actualWebhookPath,
+                webhookUrl: resolvedWebhookUrl
             };
 
             // Update app config tables from extracted n8n settings
@@ -304,11 +319,16 @@ class N8nSyncService {
                         temperature: temperature,
                         max_tokens: maxOutputTokens
                     });
-                    this.configModel.updateN8nConfig({
+                    // Persist webhook_base_url with the REAL path from n8n DB
+                    const webhookUpdate = {
                         workflow_name: row.name,
                         is_running: 1,
                         last_heartbeat: new Date().toISOString().replace('T', ' ').replace('Z', '')
-                    });
+                    };
+                    if (actualWebhookPath) {
+                        webhookUpdate.webhook_base_url = resolvedWebhookUrl;
+                    }
+                    this.configModel.updateN8nConfig(webhookUpdate);
 
                     // Update Google Sheets integration config with real spreadsheet details
                     const sheetsIntegration = this.configModel.getIntegration('GOOGLE_SHEETS');

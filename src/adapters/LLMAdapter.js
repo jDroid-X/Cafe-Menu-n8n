@@ -327,7 +327,7 @@ class LLMAdapter {
             toolsCalled.push('Post Orders');
             const orderResult = tools.postOrder({
                 customer_name: customerName,
-                customer_phone: session?.customer_phone || '+91 9876543210',
+                customer_phone: session?.customer_phone || session?.customerPhone || '+91 9876543210',
                 item_name: stockCheck.item.item_name,
                 quantity: quantity,
                 unit_price: stockCheck.item.price,
@@ -335,7 +335,7 @@ class LLMAdapter {
                 status: 'Confirmed',
                 payment_status: 'Pending',
                 description: 'Order accepted (item available)',
-                source: 'DEMO_CONSOLE'
+                source: 'MOCK'
             });
             toolResults.push({ tool: 'Post Orders', order: orderResult });
 

@@ -17,6 +17,7 @@ const App = {
     dashboardMetricMode: 'revenue',  // 'revenue' or 'orders'
     dashboardTimeRange: 'day',       // 'day', 'week', or 'month'
     cachedAnalytics: null,           // Cached CFO analytics data
+    n8nWebhookUrl: 'http://localhost:5678/webhook/whatsapp-restaurant', // Editable via n8n Stage 1
 
     init() {
         this.initTheme();
@@ -32,6 +33,9 @@ const App = {
         this.bindModals();
         this.bindForms();
 
+        // Check n8n activation status for simulator banner
+        this.checkN8nActivationStatus();
+
         // Check if a specific screen hash is requested
         if (window.location.hash) {
             this.navigateTo(window.location.hash.replace('#', ''));
@@ -39,7 +43,9 @@ const App = {
 
         // Refresh telemetry and n8n sync periodically
         setInterval(() => this.loadHealthAndStatus(), 20000);
-        setInterval(() => this.loadN8nSyncStatus(), 4000);
+        setInterval(() => this.loadN8nSyncStatus(), 10000);
+        // Recheck n8n activation status periodically
+        setInterval(() => this.checkN8nActivationStatus(), 10000);
     },
 
     // 1. THEME TOGGLE (SYSTEM DEFAULT LIGHT / DARK)
@@ -436,7 +442,35 @@ const App = {
             const promptEl = document.getElementById('n8n-cfg-system-prompt');
             if (promptEl) promptEl.value = agent.systemMessage || '';
 
-            // 6. Update Telemetry
+            // 6. Populate Webhook Path
+            const webhookPathEl = document.getElementById('n8n-cfg-webhook-path');
+            const webhookPreviewEl = document.getElementById('n8n-webhook-url-preview');
+            const webhookDisplayEl = document.getElementById('n8n-webhook-display');
+
+            const rawWebhookUrl = n8n.webhook_url || 'http://localhost:5678/webhook/whatsapp-restaurant';
+            // Extract just the path segment (after /webhook/)
+            let webhookPath = 'whatsapp-restaurant';
+            try {
+                const urlObj = new URL(rawWebhookUrl);
+                const parts = urlObj.pathname.split('/webhook/');
+                if (parts.length > 1 && parts[1]) webhookPath = parts[1];
+            } catch (_) {
+                // If it's already just a path segment
+                if (rawWebhookUrl && !rawWebhookUrl.startsWith('http')) webhookPath = rawWebhookUrl;
+            }
+            if (webhookPathEl) webhookPathEl.value = webhookPath;
+            const resolvedUrl = `http://localhost:5678/webhook/${webhookPath}`;
+            if (webhookPreviewEl) webhookPreviewEl.innerText = resolvedUrl;
+            if (webhookDisplayEl) webhookDisplayEl.innerText = resolvedUrl;
+
+            // Store resolved webhook URL in App state for Simulator use
+            this.n8nWebhookUrl = resolvedUrl;
+
+            // Sync the Simulator screen webhook status bar
+            const simActiveEl = document.getElementById('sim-active-webhook-url');
+            if (simActiveEl) simActiveEl.innerText = resolvedUrl;
+
+            // 7. Update Telemetry
             this.loadN8nSyncStatus();
 
             // Apply brand name dynamically across UI
@@ -501,6 +535,11 @@ const App = {
                 sheets_client_id: document.getElementById('n8n-cfg-sheets-client-id')?.value.trim() || undefined,
                 sheets_client_secret: sheetsSecretInput && sheetsSecretInput.value.trim() ? sheetsSecretInput.value.trim() : undefined,
 
+                webhook_url: (() => {
+                    const path = document.getElementById('n8n-cfg-webhook-path')?.value?.trim() || 'whatsapp-restaurant';
+                    return `http://localhost:5678/webhook/${path}`;
+                })(),
+
                 systemMessage: document.getElementById('n8n-cfg-system-prompt').value.trim()
             };
 
@@ -510,6 +549,15 @@ const App = {
             const versionInfo = pushResult && pushResult.success !== false
                 ? `v${pushResult.versionCounter || 'latest'}`
                 : (pushResult && pushResult.error ? `(push warning: ${pushResult.error})` : '');
+
+            // Update webhook URL display after save
+            const savedWebhookPath = document.getElementById('n8n-cfg-webhook-path')?.value?.trim() || 'whatsapp-restaurant';
+            const savedWebhookUrl = `http://localhost:5678/webhook/${savedWebhookPath}`;
+            this.n8nWebhookUrl = savedWebhookUrl;
+            const webhookDisplayEl = document.getElementById('n8n-webhook-display');
+            if (webhookDisplayEl) webhookDisplayEl.innerText = savedWebhookUrl;
+            const webhookPreviewEl = document.getElementById('n8n-webhook-url-preview');
+            if (webhookPreviewEl) webhookPreviewEl.innerText = savedWebhookUrl;
 
             this.applyBrandName(payload.restaurant_name, payload.contact_number);
             await this.loadN8nSyncStatus();
@@ -1046,6 +1094,63 @@ const App = {
         }
     },
 
+    // n8n Workflow Activation Status Check (called when simulator tab loads)
+    async checkN8nActivationStatus() {
+        try {
+            const syncData = await API.getN8nSync();
+            const state = syncData?.data || syncData || {};
+            const isActive = state.active === true;
+            const webhookPath = state.webhookPath || state.webhookUrl || null;
+
+            const banner = document.getElementById('n8n-activation-banner');
+            const webhookDisplay = document.getElementById('sim-active-webhook-url');
+
+            // Update webhook URL display with real path from n8n DB
+            if (webhookPath && webhookDisplay) {
+                const displayUrl = webhookPath.startsWith('http')
+                    ? webhookPath
+                    : `http://localhost:5678/webhook/${webhookPath}`;
+                webhookDisplay.textContent = displayUrl;
+            }
+
+            // Show/hide activation banner
+            if (banner) {
+                banner.style.display = isActive ? 'none' : 'flex';
+            }
+        } catch (err) {
+            console.warn('[App] Could not check n8n activation status:', err.message);
+        }
+    },
+
+    async activateN8nWorkflow() {
+        const btn = document.getElementById('btn-activate-workflow');
+        if (btn) { btn.disabled = true; btn.textContent = 'Activating...'; }
+        try {
+            const result = await API.activateN8nWorkflow();
+            if (result.success) {
+                // Hide banner
+                const banner = document.getElementById('n8n-activation-banner');
+                if (banner) banner.style.display = 'none';
+
+                const statusDiv = document.getElementById('sim-webhook-status');
+                if (statusDiv) {
+                    statusDiv.textContent = '✅ Workflow activated — reload n8n to apply';
+                    statusDiv.style.color = 'var(--success, #25d366)';
+                }
+
+                // Open n8n in new tab so user can see it's active
+                window.open(`http://localhost:5678/workflow/USdZGa2vqGuUstP7`, '_blank');
+                alert('✅ Workflow activated in n8n database!\n\nPlease:\n1. Wait 3-5 seconds for n8n to detect the change\n2. Refresh n8n tab if open\n3. The toggle will now show active — messages will route through Google Sheets & Gemini AI');
+            } else {
+                alert('❌ Activation failed: ' + (result.error || 'Unknown error'));
+            }
+        } catch (err) {
+            alert('❌ Error: ' + err.message);
+        } finally {
+            if (btn) { btn.disabled = false; btn.textContent = '⚡ Activate Workflow'; }
+        }
+    },
+
     // 14. TEST CONSOLE (RULES 1 - 6)
     bindChatConsole() {
         const input = document.getElementById('chat-user-input');
@@ -1059,51 +1164,77 @@ const App = {
             this.appendChatBubble(text, 'inbound');
             input.value = '';
 
-            try {
-                // Check if n8n is running — route through webhook
-                let n8nPort = null;
-                try {
-                    const healthRes = await API.getHealth();
-                    n8nPort = healthRes.n8nRuntime?.configuredPort || null;
-                } catch (_) {}
+            // Show typing indicator
+            const typingId = `typing-${Date.now()}`;
+            const typingDiv = document.createElement('div');
+            typingDiv.id = typingId;
+            typingDiv.className = 'chat-bubble outbound';
+            typingDiv.innerHTML = '<span style="letter-spacing: 2px; opacity: 0.7;">&#8226;&#8226;&#8226; typing</span>';
+            const msgContainer = document.getElementById('whatsapp-messages');
+            msgContainer.appendChild(typingDiv);
+            msgContainer.scrollTop = msgContainer.scrollHeight;
 
-                if (n8nPort) {
-                    // Route through n8n webhook
-                    const n8nUrl = `http://localhost:${n8nPort}/webhook/whatsapp-restaurant`;
-                    const resp = await fetch(n8nUrl, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            phone: this.currentSessionKey,
-                            name: 'Demo User',
-                            text: text
-                        })
-                    });
-                    const n8nData = await resp.json();
-                    const reply = n8nData.output || n8nData.text || JSON.stringify(n8nData);
-                    this.appendChatBubble(reply, 'outbound');
-                    if (traceOutput) {
-                        traceOutput.innerText = `→ n8n Webhook Response\n${JSON.stringify(n8nData, null, 2)}`;
-                    }
-                } else {
-                    // Local simulator path (Mock AI)
-                    const response = await API.sendChat(text, this.currentSessionKey);
-                    const data = response.data;
-                    this.appendChatBubble(data.reply, 'outbound');
-                    if (traceOutput) {
-                        traceOutput.innerText = JSON.stringify({
-                            timestamp: new Date().toISOString(),
-                            input: data.normalizedInput,
-                            agentDecision: data.agentDecision,
-                            toolsCalled: data.toolsCalled,
-                            toolResults: data.toolResults,
-                            historyTurnsInSession: data.historyCount,
-                            executionLatencyMs: data.executionTimeMs
-                        }, null, 2);
-                    }
+            const removeTyping = () => {
+                const el = document.getElementById(typingId);
+                if (el) el.remove();
+            };
+
+            const statusDiv = document.getElementById('sim-webhook-status');
+
+            try {
+                // -------------------------------------------------------
+                // ARCHITECTURE: Always route through our own backend API
+                // (/api/test/chat). The backend (SimulatorService) handles
+                // internal routing: n8n webhook → execution API → local LLM.
+                // The browser should NEVER call n8n directly (CORS / port).
+                // -------------------------------------------------------
+
+                // Update status bar with configured webhook path for display
+                const webhookPathInput = document.getElementById('n8n-cfg-webhook-path');
+                const configuredPath = (webhookPathInput?.value?.trim()) || 'whatsapp-restaurant';
+                const displayUrl = `http://localhost:5678/webhook/${configuredPath}`;
+                if (statusDiv) {
+                    statusDiv.innerText = `→ Routing via backend → ${displayUrl}`;
+                    statusDiv.style.color = 'var(--brand-primary)';
                 }
+
+                // POST to our own backend which internally handles n8n/LLM routing
+                const response = await API.sendChat(text, this.currentSessionKey);
+                const data = response.data;
+
+                removeTyping();
+                this.appendChatBubble(data.reply, 'outbound');
+
+                // Update status and trace
+                const routeMode = data.agentDecision === 'N8N_API' ? '✅ n8n Webhook' : '🤖 Local Mock AI';
+                if (statusDiv) {
+                    statusDiv.innerText = `${routeMode} — Response received`;
+                    statusDiv.style.color = data.agentDecision === 'N8N_API'
+                        ? 'var(--success, #25d366)'
+                        : 'var(--amber, #f59e0b)';
+                }
+
+                if (traceOutput) {
+                    traceOutput.innerText = JSON.stringify({
+                        timestamp: new Date().toISOString(),
+                        mode: data.agentDecision || 'LOCAL_MOCK_AI',
+                        webhookPath: displayUrl,
+                        normalizedInput: data.normalizedInput,
+                        agentDecision: data.agentDecision,
+                        toolsCalled: data.toolsCalled,
+                        toolResults: data.toolResults,
+                        historyTurnsInSession: data.historyCount,
+                        executionLatencyMs: data.executionTimeMs
+                    }, null, 2);
+                }
+
             } catch (err) {
+                removeTyping();
                 this.appendChatBubble(`⚠️ Error: ${err.message}`, 'outbound');
+                if (statusDiv) {
+                    statusDiv.innerText = `❌ Error: ${err.message}`;
+                    statusDiv.style.color = 'var(--danger, #ef4444)';
+                }
                 if (traceOutput) traceOutput.innerText = `Error: ${err.message}`;
             }
         };
@@ -1137,8 +1268,15 @@ const App = {
         const container = document.getElementById('whatsapp-messages');
         const bubble = document.createElement('div');
         bubble.className = `chat-bubble ${direction}`;
+
+        // Render WhatsApp-style markdown (Rule 6: *bold*, _italic_, \n → <br>)
+        const rendered = String(text)
+            .replace(/\*(.*?)\*/g, '<strong>$1</strong>')
+            .replace(/_(.*?)_/g, '<em>$1</em>')
+            .replace(/\n/g, '<br/>');
+
         bubble.innerHTML = `
-            ${text.replace(/\n/g, '<br/>')}
+            <span class="bubble-text">${rendered}</span>
             <div class="chat-time">${new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</div>
         `;
         container.appendChild(bubble);
@@ -1246,6 +1384,28 @@ const App = {
         // Search inputs
         document.getElementById('menu-search')?.addEventListener('input', () => this.loadMenuItems());
         document.getElementById('faq-search')?.addEventListener('input', () => this.loadFAQItems());
+
+        // Webhook path live preview — updates all display elements as user types
+        const webhookPathInput = document.getElementById('n8n-cfg-webhook-path');
+        if (webhookPathInput) {
+            const updateWebhookPreview = () => {
+                const path = webhookPathInput.value.trim() || 'whatsapp-restaurant';
+                const resolvedUrl = `http://localhost:5678/webhook/${path}`;
+
+                const previewEl = document.getElementById('n8n-webhook-url-preview');
+                if (previewEl) previewEl.innerText = resolvedUrl;
+
+                const displayEl = document.getElementById('n8n-webhook-display');
+                if (displayEl) displayEl.innerText = resolvedUrl;
+
+                const simActiveEl = document.getElementById('sim-active-webhook-url');
+                if (simActiveEl) simActiveEl.innerText = resolvedUrl;
+
+                // Update in-memory state so Simulator picks it up immediately
+                this.n8nWebhookUrl = resolvedUrl;
+            };
+            webhookPathInput.addEventListener('input', updateWebhookPreview);
+        }
     },
 
     // ============================================================

@@ -122,7 +122,21 @@ class OrderModel {
             console.warn('[OrderModel] Stock auto-decrement warning:', e.message);
         }
 
-        return this.getById(result.lastInsertRowid);
+        const savedOrder = this.getById(result.lastInsertRowid);
+
+        // Async write to Google Sheets (non-blocking — local order always succeeds)
+        setImmediate(() => {
+            try {
+                const GoogleSheetsService = require('../services/GoogleSheetsService');
+                GoogleSheetsService.getInstance().appendOrder(savedOrder)
+                    .then(() => console.log(`[OrderModel] ✅ Order ${savedOrder.order_code} pushed to Google Sheets`))
+                    .catch(err => console.warn(`[OrderModel] ⚠️ Google Sheets write failed (order still saved locally): ${err.message}`));
+            } catch (e) {
+                console.warn('[OrderModel] GoogleSheetsService unavailable:', e.message);
+            }
+        });
+
+        return savedOrder;
     }
 
     updateStatus(id, status, description = null) {

@@ -89,7 +89,11 @@ const API = {
     getN8nSync: () => API.request('/api/n8n/sync'),
     triggerN8nSync: () => API.request('/api/n8n/sync', { method: 'POST' }),
     getN8nWorkflowConfig: () => API.request('/api/config/n8n-workflow'),
-    saveN8nWorkflowConfig: (data) => API.request('/api/config/n8n-workflow', { method: 'POST', body: JSON.stringify(data) })
+    saveN8nWorkflowConfig: (data) => API.request('/api/config/n8n-workflow', { method: 'POST', body: JSON.stringify(data) }),
+
+    // 10. n8n Workflow Activation
+    activateN8nWorkflow: (workflowId) => API.request('/api/runtime/n8n/activate', { method: 'POST', body: JSON.stringify({ workflowId: workflowId || 'USdZGa2vqGuUstP7' }) }),
+    deactivateN8nWorkflow: (workflowId) => API.request('/api/runtime/n8n/deactivate', { method: 'POST', body: JSON.stringify({ workflowId: workflowId || 'USdZGa2vqGuUstP7' }) })
 };
 
 window.API = API;

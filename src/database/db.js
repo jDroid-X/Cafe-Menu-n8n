@@ -23,8 +23,10 @@ class DatabaseService {
         this.dbPath = path.join(dataDir, 'restaurant_demo.db');
         this.db = new DatabaseSync(this.dbPath);
 
-        // Enable WAL mode & foreign keys for concurrency and integrity
+        // Enable WAL mode, busy timeout & foreign keys for concurrency and integrity
         this.db.exec('PRAGMA journal_mode = WAL;');
+        this.db.exec('PRAGMA busy_timeout = 5000;');  // retry for up to 5s on lock
+        this.db.exec('PRAGMA synchronous = NORMAL;');  // balance speed vs. safety
         this.db.exec('PRAGMA foreign_keys = ON;');
 
         this.initSchema();

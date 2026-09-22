@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en" data-theme="dark">
 <head>
     <meta charset="UTF-8">
@@ -96,9 +96,6 @@
             <a class="nav-item active" data-screen="dashboard">
                 <span class="icon">📊</span> Executive Dashboard
             </a>
-            <a class="nav-item" data-screen="test-console">
-                <span class="icon">💬</span> WhatsApp Simulator
-            </a>
 
             <div class="nav-section-title">Restaurant Management</div>
             <a class="nav-item" data-screen="restaurant">
@@ -128,6 +125,9 @@
             </a>
             <a class="nav-item" data-screen="n8n">
                 <span class="icon">⚙️</span> n8n Workflow & Multi-Store
+            </a>
+            <a class="nav-item" data-screen="test-console">
+                <span class="icon">💬</span> WhatsApp Simulator
             </a>
 
             <div class="nav-section-title">Diagnostics</div>
@@ -362,6 +362,22 @@
                         <div class="pipeline-stage-chevron">▶</div>
                     </div>
                     <div class="pipeline-stage-body">
+                        <!-- n8n Webhook Path Config (editable — used by WhatsApp Simulator) -->
+                        <div style="background: rgba(37, 211, 102, 0.06); border: 1px solid rgba(37, 211, 102, 0.25); border-radius: 8px; padding: 14px 16px; margin-bottom: 16px;">
+                            <div style="font-weight: 700; font-size: 13px; color: var(--brand-primary); margin-bottom: 10px;">🔗 n8n Webhook Path (Editable — Used by Simulator &amp; Incoming Messages)</div>
+                            <div class="card-grid" style="grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 0;">
+                                <div class="form-group">
+                                    <label for="n8n-cfg-webhook-path">Webhook Path (n8n Trigger Node)</label>
+                                    <input type="text" id="n8n-cfg-webhook-path" value="whatsapp-restaurant" placeholder="e.g. whatsapp-restaurant" style="font-family: var(--font-mono); font-weight: 600;">
+                                    <span style="font-size: 11px; color: var(--text-dim);">Path segment after <code>/webhook/</code>. Must match your n8n Webhook Trigger node path. WhatsApp Simulator will POST to this URL.</span>
+                                </div>
+                                <div class="form-group">
+                                    <label>Resolved Webhook URL (Live Preview)</label>
+                                    <div style="background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 6px; padding: 8px 12px; font-family: var(--font-mono); font-size: 12px; color: var(--brand-primary);" id="n8n-webhook-url-preview">http://localhost:5678/webhook/whatsapp-restaurant</div>
+                                    <span style="font-size: 11px; color: var(--text-dim); margin-top: 4px; display: block;">Simulator &amp; n8n runtime will call this endpoint for every inbound message.</span>
+                                </div>
+                            </div>
+                        </div>
                         <div class="card-grid" style="grid-template-columns: 1fr 1fr; margin-bottom: 0;">
                             <div>
                                 <div class="form-group">
@@ -636,7 +652,7 @@
                                 <div style="font-size: 13px; line-height: 1.8;">
                                     <div><strong>Target Workflow:</strong> <span id="n8n-workflow-name">CafeMenu Whatsapp</span></div>
                                     <div><strong>Workflow ID:</strong> <code>USdZGa2vqGuUstP7</code></div>
-                                    <div><strong>Webhook URL:</strong> <code id="n8n-webhook-display">http://localhost:5678/webhook/whatsapp-restaurant</code></div>
+                                    <div><strong>Webhook URL:</strong> <code id="n8n-webhook-display">http://localhost:5678/webhook/whatsapp-restaurant</code> <button type="button" class="btn btn-secondary" style="padding:2px 8px; font-size:10.5px; margin-left:6px;" onclick="App.navigateToStage('n8n','stage-1-whatsapp')">Edit Path ✏️</button></div>
                                     <div><strong>Sync State:</strong> <span id="n8n-sync-status-badge" class="badge badge-success">SYNCED 🟢</span></div>
                                     <div><strong>Version:</strong> <span id="n8n-version-counter">v5</span></div>
                                     <div><strong>Nodes:</strong> <span id="n8n-node-count">7 Nodes</span></div>
@@ -711,10 +727,31 @@
             <!-- SCREEN 11: TEST CONSOLE & WHATSAPP SIMULATOR -->
             <section id="screen-test-console" class="screen-view">
                 <div class="section-header">
-                    <div class="section-title">💬 WhatsApp Simulator & Live Technical Trace</div>
+                    <div class="section-title">💬 WhatsApp Simulator &amp; Live Technical Trace</div>
                     <div class="btn-group">
                         <button class="btn btn-secondary" id="btn-reset-chat-session">Reset Session Context</button>
                     </div>
+                </div>
+
+                <!-- N8N WORKFLOW ACTIVATION BANNER -->
+                <div id="n8n-activation-banner" style="display:none; align-items: center; gap: 10px; background: rgba(245,158,11,0.1); border: 1.5px solid rgba(245,158,11,0.4); border-radius: 8px; padding: 10px 14px; margin-bottom: 10px; font-size: 12px;">
+                    <span style="font-size:16px;">⚠️</span>
+                    <div style="flex:1;">
+                        <strong style="color:#f59e0b;">n8n Workflow Not Active</strong>
+                        <span style="color:var(--text-muted); margin-left:6px;">Simulator is running in Local Mock AI mode. To use Google Sheets & Gemini AI, activate the workflow in n8n.</span>
+                    </div>
+                    <button class="btn btn-primary" style="padding:4px 12px; font-size:11px; white-space:nowrap;" onclick="App.activateN8nWorkflow()" id="btn-activate-workflow">⚡ Activate Workflow</button>
+                    <a href="http://localhost:5678/workflow/USdZGa2vqGuUstP7" target="_blank" class="btn btn-secondary" style="padding:4px 10px; font-size:11px; white-space:nowrap;">Open n8n ↗</a>
+                </div>
+
+                <!-- WEBHOOK ROUTING STATUS BAR -->
+                <div style="display: flex; align-items: center; gap: 12px; background: rgba(37, 211, 102, 0.06); border: 1px solid rgba(37, 211, 102, 0.2); border-radius: 8px; padding: 10px 14px; margin-bottom: 12px; font-size: 12px;">
+                    <span style="font-weight: 700; color: var(--text-muted); white-space: nowrap;">🔗 Webhook Routing:</span>
+                    <div style="flex: 1; font-family: var(--font-mono); color: var(--brand-primary); font-size: 11.5px;">
+                        <span id="sim-active-webhook-url">http://localhost:5678/webhook/whatsapp-restaurant</span>
+                    </div>
+                    <span id="sim-webhook-status" style="font-size: 11px; color: var(--text-dim); white-space: nowrap;">Ready</span>
+                    <button class="btn btn-secondary" style="padding: 3px 8px; font-size: 10.5px; white-space: nowrap;" onclick="App.navigateTo('n8n'); setTimeout(() => App.navigateToStage('n8n', 'stage-1-whatsapp'), 100);">Edit Webhook ✏️</button>
                 </div>
 
                 <!-- Quick Query Pills matching Images 1 & 2 -->

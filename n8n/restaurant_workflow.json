@@ -152,20 +152,18 @@
     },
     {
       "parameters": {
-        "method": "POST",
-        "url": "http://localhost:3585/api/test/chat",
-        "sendBody": true,
-        "specifyBody": "json",
-        "jsonBody": "={\n  \"senderId\": \"{{ $('Normalize Incoming Message').first().json.senderPhone }}\",\n  \"message\": \"{{ $json.output }}\",\n  \"isOutbound\": true\n}"
+        "responseMode": "lastNode",
+        "responseCode": 200,
+        "responseBody": "={{ $json.output }}"
       },
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
       "position": [
         640,
         300
       ],
-      "id": "node-whatsapp-send",
-      "name": "WhatsApp Send Response"
+      "id": "node-respond-to-webhook",
+      "name": "Respond to Webhook"
     }
   ],
   "connections": {
@@ -250,7 +248,7 @@
       "main": [
         [
           {
-            "node": "WhatsApp Send Response",
+            "node": "Respond to Webhook",
             "type": "main",
             "index": 0
           }

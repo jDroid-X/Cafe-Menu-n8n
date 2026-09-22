@@ -1,0 +1,30 @@
+{
+  "serverPort": 3585,
+  "n8n": {
+    "port": 5678,
+    "workflowId": "USdZGa2vqGuUstP7",
+    "webhookPath": "whatsapp-restaurant"
+  },
+  "googleSheets": {
+    "spreadsheetId": "1zipJC7y1Oa43PWMZHrotGd-lO8v54Xfq70bOLQUATcE",
+    "inventorySheet": "Inventory",
+    "ordersSheet": "Orders",
+    "faqSheet": "FAQ"
+  },
+  "whatsapp": {
+    "token": "YOUR_WHATSAPP_TOKEN",
+    "verifyToken": "YOUR_VERIFY_TOKEN",
+    "phoneNumberId": "YOUR_PHONE_NUMBER_ID",
+    "accountId": "YOUR_FACEBOOK_ACCOUNT_ID"
+  },
+  "jwtSecret": "YOUR_JWT_SECRET",
+  "geminiApiKey": "YOUR_GEMINI_API_KEY",
+  "pollIntervals": {
+    "n8nSyncWatcher": 10000,
+    "frontendN8nStatus": 10000,
+    "frontendHealth": 20000
+  },
+  "ui": {
+    "theme": "dark"
+  }
+}
