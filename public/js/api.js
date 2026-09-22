@@ -153,9 +153,13 @@ const StaticMock = {
 const API = {
     async request(url, options = {}) {
         try {
+            // Include JWT token if available
+            const token = localStorage.getItem('jdroid_token');
+            const authHeaders = token ? { 'Authorization': `Bearer ${token}` } : {};
             const res = await fetch(url, {
                 headers: {
                     'Content-Type': 'application/json',
+                    ...authHeaders,
                     ...(options.headers || {})
                 },
                 ...options

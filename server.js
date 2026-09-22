@@ -14,6 +14,15 @@ const errorHandler = require('./src/middleware/errorHandler');
 const app = express();
 const PORT = process.env.PORT || 3585;
 
+// Session middleware setup
+const session = require('express-session');
+app.use(session({
+  secret: process.env.SESSION_SECRET || 'session_secret',
+  resave: false,
+  saveUninitialized: false,
+  cookie: { secure: false, httpOnly: true, maxAge: 3600000 }
+}));
+
 // Middleware
 app.use(cors());
 app.use(express.json());

@@ -3,6 +3,7 @@
 // ==========================================================
 
 const jwt = require('jsonwebtoken');
+const ConfigService = require('../services/ConfigService');
 
 /**
  * Middleware to protect routes using JWT authentication.
@@ -10,25 +11,21 @@ const jwt = require('jsonwebtoken');
  * On success, attaches decoded payload to req.user and calls next().
  * On failure, responds with 401 Unauthorized.
  */
-function verifyJwt(req, res, next) {
+function verifySession(req, res, next) {
   const authHeader = req.headers['authorization'];
-  if (!authHeader) {
-    return res.status(401).json({ success: false, error: 'Missing Authorization header' });
+  const token = authHeader && authHeader.split(' ')[1];
+
+  if (!token) {
+    return res.status(401).json({ success: false, error: 'Unauthenticated' });
   }
-  const parts = authHeader.split(' ');
-  if (parts.length !== 2 || parts[0] !== 'Bearer') {
-    return res.status(401).json({ success: false, error: 'Invalid Authorization format' });
-  }
-  const token = parts[1];
+
   try {
-    const ConfigService = require('../services/ConfigService');
-  const secret = ConfigService.getInstance().getJwtSecret();
-  const payload = jwt.verify(token, secret);
-  req.user = payload; // attach decoded payload for downstream use
-    req.user = payload; // attach decoded payload for downstream use
+    const secret = ConfigService.getInstance().getJwtSecret() || process.env.JWT_SECRET || 'default_jwt_secret';
+    const decoded = jwt.verify(token, secret);
+    req.user = decoded;
     next();
   } catch (err) {
-    return res.status(401).json({ success: false, error: 'Invalid or expired token' });
+    return res.status(401).json({ success: false, error: 'Unauthenticated' });
   }
 }
 function requireRole(role) {
@@ -43,4 +40,4 @@ function requireRole(role) {
   };
 }
 
-module.exports = { verifyJwt, requireRole };
+module.exports = { verifySession, requireRole };

@@ -6,15 +6,19 @@
 const express = require('express');
 const router = express.Router();
 const AuthController = require('../controllers/AuthController');
-const { verifyJwt, requireRole } = require('../middleware/auth');
+const { verifySession, requireRole } = require('../middleware/auth');
 const ConfigService = require('../services/ConfigService');
 // Login route (unprotected)
 router.post('/auth/login', (req, res) => {
   const auth = new AuthController();
   return auth.login(req, res);
 });
+router.post('/auth/register', (req, res) => {
+  const auth = new AuthController();
+  return auth.register(req, res);
+});
 // Apply JWT verification to all subsequent routes
-router.use(verifyJwt);
+router.use(verifySession);
 
 const RestaurantController = require('../controllers/RestaurantController');
 const MenuController = require('../controllers/MenuController');
@@ -73,11 +77,11 @@ router.patch('/orders/:id/payment', (req, res) => order.updatePayment(req, res))
 
 // 6. Configurations & System Prompts
 router.get('/config/agent', (req, res) => config.getAgentConfig(req, res));
-router.put('/config/agent', (req, res) => config.updateAgentConfig(req, res));
+router.put('/config/agent', requireRole('admin'), (req, res) => config.updateAgentConfig(req, res));
 router.get('/config/memory', (req, res) => config.getMemoryConfig(req, res));
-router.put('/config/memory', (req, res) => config.updateMemoryConfig(req, res));
+router.put('/config/memory', requireRole('admin'), (req, res) => config.updateMemoryConfig(req, res));
 router.get('/config/integrations', (req, res) => config.getIntegrations(req, res));
-router.put('/config/integrations/:provider', (req, res) => config.updateIntegration(req, res));
+router.put('/config/integrations/:provider', requireRole('admin'), (req, res) => config.updateIntegration(req, res));
 router.get('/config/prompt-preview', (req, res) => config.getPromptPreview(req, res));
 
 router.get('/config/app', (req, res) => configApp.getAppConfig(req, res));
@@ -117,13 +121,25 @@ router.post('/n8n/sync/manual', requireRole('admin'), async (req, res) => {
 });
 router.post('/n8n/sync', (req, res) => config.triggerN8nSync(req, res));
 router.get('/config/n8n-workflow', (req, res) => config.getFullN8nWorkflowConfig(req, res));
-router.post('/config/n8n-workflow', (req, res) => config.saveFullN8nWorkflowConfig(req, res));
+router.post('/config/n8n-workflow', requireRole('admin'), (req, res) => config.saveFullN8nWorkflowConfig(req, res));
 
 // 11. n8n Workflow Activation (toggle active state via n8n REST API)
 router.post('/runtime/n8n/activate', (req, res) => runtime.activateWorkflow(req, res));
 router.post('/runtime/n8n/deactivate', (req, res) => runtime.deactivateWorkflow(req, res));
 
 module.exports = router;
+
+// Add demo admin user if not exists
+(async () => {
+  const bcrypt = require('bcrypt');
+  const db = require('./db').getInstance();
+  const adminExists = db.queryOne('SELECT * FROM users WHERE username = ?', ['admin']);
+  if (!adminExists) {
+    const passwordHash = await bcrypt.hash('admin123', 10);
+    db.run('INSERT INTO users (username, email, password_hash, role) VALUES (?, ?, ?, ?)', ['admin', 'admin@example.com', passwordHash, 'admin']);
+    console.log('[DatabaseSeeder] Demo admin user created');
+  }
+})();
 
 // 12. WhatsApp Webhook Verification (for real WhatsApp Business Cloud API)
 router.get('/webhook/whatsapp-verify', (req, res) => {

@@ -14,6 +14,29 @@ class ConfigService extends EventEmitter {
     this._config = this._load();
     this._applyEnvOverrides();
     ConfigService.instance = this;
+
+  /** Apply environment variable overrides to the loaded config */
+  _applyEnvOverrides() {
+    const envMap = {
+      N8N_BASE_URL: ['n8n', 'baseUrl'],
+      JWT_SECRET: ['jwtSecret'],
+      GEMINI_API_KEY: ['geminiApiKey'],
+      GOOGLE_SHEET_ID: ['googleSheetId'],
+      WHATSAPP_VERIFY_TOKEN: ['whatsapp', 'verifyToken'],
+    };
+    for (const [envKey, pathArr] of Object.entries(envMap)) {
+      const envVal = process.env[envKey];
+      if (envVal) {
+        let target = this._config;
+        for (let i = 0; i < pathArr.length - 1; i++) {
+          const segment = pathArr[i];
+          target[segment] = target[segment] || {};
+          target = target[segment];
+        }
+        target[pathArr[pathArr.length - 1]] = envVal;
+      }
+    }
+  }
   }
 
   static getInstance() {

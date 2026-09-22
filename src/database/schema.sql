@@ -155,6 +155,16 @@ CREATE TABLE IF NOT EXISTS audit_log (
     event_name TEXT NOT NULL,
     details_json TEXT DEFAULT '{}'
 );
+CREATE TABLE IF NOT EXISTS users (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    username TEXT NOT NULL UNIQUE,
+    email TEXT NOT NULL UNIQUE,
+    password_hash TEXT NOT NULL,
+    role TEXT NOT NULL DEFAULT 'user' CHECK(role IN ('user','admin')),
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
 
 -- Indexes for optimal performance
 CREATE INDEX IF NOT EXISTS idx_menu_items_status ON menu_items(status);
