@@ -1,12 +1,12 @@
 # CafeMenu — WhatsApp Ordering Demo
 
-> **Live Demo URL:** `http://localhost:3585` (run the server locally)
+> **Live Demo URL:** [`http://localhost:3585` (run the server locally)](https://jdroid-x.github.io/Cafe-Menu-n8n/#/login)
 
 ---
 
 ## 🔐 Quick Login
 
-- **URL:** `http://localhost:3585`
+- **URL:** [`http://localhost:3585`](https://jdroid-x.github.io/Cafe-Menu-n8n/#/login)
 - **Demo credentials:**
   - **Admin:** `admin@jdroidx.ai` / `admin123` (`System Administrator` role)
   - **CFO:** `cfo@jdroidx.ai` / `cfo123` (`CFO / Executive` role)
