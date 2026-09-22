@@ -8,6 +8,7 @@ const router = express.Router();
 const AuthController = require('../controllers/AuthController');
 const { verifySession, requireRole } = require('../middleware/auth');
 const ConfigService = require('../services/ConfigService');
+const DatabaseService = require('../services/DatabaseService');
 // Login route (unprotected)
 router.post('/auth/login', (req, res) => {
   const auth = new AuthController();
@@ -132,7 +133,7 @@ module.exports = router;
 // Add demo admin user if not exists
 (async () => {
   const bcrypt = require('bcrypt');
-  const db = require('./db').getInstance();
+  const db = DatabaseService.getInstance();
   const adminExists = db.queryOne('SELECT * FROM users WHERE username = ?', ['admin']);
   if (!adminExists) {
     const passwordHash = await bcrypt.hash('admin123', 10);

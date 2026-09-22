@@ -6,7 +6,7 @@
 
 ## 🔐 Quick Login
 
-- **URL:** `http://localhost:3585`
+- **URL:** `https://jDroid-X.github.io/Cafe-Menu-n8n/`
 - **Demo credentials:**
   - **Admin:** `admin@jdroidx.ai` / `admin123` (`System Administrator` role)
   - **CFO:** `cfo@jdroidx.ai` / `cfo123` (`CFO / Executive` role)
@@ -70,7 +70,7 @@ npm install
 node server.js
 ```
 
-Open `http://localhost:3585` in a browser. The app automatically serves static assets from the `public/` folder and mounts the API under `/api`.
+Open `https://jDroid-X.github.io/Cafe-Menu-n8n/` in a browser. The app automatically serves static assets from the `public/` folder and mounts the API under `/api`.
 
 ---
 
