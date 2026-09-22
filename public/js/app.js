@@ -94,17 +94,15 @@ const App = {
         const overlay = document.getElementById('auth-overlay');
 
         if (!auth) {
-            // Provide default admin session so human operators and demo runs are never blocked
-            auth = { email: 'admin@jdroidx.ai', role: 'System Administrator', loggedInAt: new Date().toISOString() };
-            localStorage.setItem('jdroid_auth', JSON.stringify(auth));
-            overlay.classList.remove('active');
-            this.updateUserBadge(auth.email, auth.role);
+            // No auth, redirect to login page
+            window.location.href = '/login.html';
+            return;
         } else {
-            overlay.classList.remove('active');
+            if (overlay) overlay.classList.remove('active');
             this.updateUserBadge(auth.email, auth.role);
         }
 
-        // Login form
+        // Existing login form handling (if present on the current page)
         const loginForm = document.getElementById('form-login');
         if (loginForm) {
             loginForm.addEventListener('submit', (e) => {

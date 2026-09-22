@@ -1,6 +1,6 @@
 # CafeMenu — WhatsApp Ordering Demo
 
-> **Live Demo URL:** `http://localhost:3585` (run the server locally)
+> **Live Demo URL:** `https://jDroid-X.github.io/Cafe-Menu-n8n/` (hosted on GitHub Pages)
 
 ---
 
