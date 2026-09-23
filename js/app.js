@@ -18,9 +18,20 @@ const App = {
     dashboardTimeRange: 'day',       // 'day', 'week', or 'month'
     cachedAnalytics: null,           // Cached CFO analytics data
     n8nWebhookUrl: 'http://localhost:5678/webhook/whatsapp-restaurant', // Editable via n8n Stage 1
+    menuViewMode: 'table',           // 'table' or 'flipper'
+    selectedCategoryFilter: 'ALL',   // Active category filter
+    selectedOrderActionType: 'STATUS_CONFIRMED',
+    activeActionOrderId: null,
+    activeActionOrderCode: null,
+    currentCurrencySymbol: '₹',      // Dynamic currency symbol
+    currentBrandName: 'jDroid-X- CafeMenu',
+    cachedMenuItems: [],
+    cachedOrders: [],
+    cachedFaqItems: [],
 
     init() {
         this.initTheme();
+        this.initToastOverride();
         this.checkAuth();
         this.bindNavigation();
         this.initEnvironmentMode();
@@ -32,6 +43,12 @@ const App = {
         this.bindChatConsole();
         this.bindModals();
         this.bindForms();
+
+        // Real-time search for menu items
+        const menuSearchInput = document.getElementById('menu-search');
+        if (menuSearchInput) {
+            menuSearchInput.addEventListener('input', () => this.renderFilteredMenu());
+        }
 
         // Check n8n activation status for simulator banner
         this.checkN8nActivationStatus();
@@ -88,30 +105,76 @@ const App = {
         this.setTheme(next);
     },
 
+    // TOAST NOTIFICATIONS (NON-BLOCKING HUMAN-IN-THE-LOOP UX)
+    toast(message, type = 'success') {
+        const container = document.getElementById('toast-container');
+        if (!container) {
+            console.log(`[Toast ${type}]`, message);
+            return;
+        }
+        const icons = {
+            success: '✅',
+            error: '❌',
+            warning: '⚠️',
+            info: 'ℹ️'
+        };
+        const toastEl = document.createElement('div');
+        toastEl.className = `toast toast-${type}`;
+        toastEl.innerHTML = `
+            <span class="toast-icon">${icons[type] || '🔔'}</span>
+            <div class="toast-message">${message}</div>
+            <button class="toast-close" onclick="this.parentElement.remove()">✕</button>
+        `;
+        container.appendChild(toastEl);
+        setTimeout(() => {
+            if (toastEl.parentElement) {
+                toastEl.style.opacity = '0';
+                toastEl.style.transform = 'translateX(40px)';
+                setTimeout(() => toastEl.remove(), 300);
+            }
+        }, 4000);
+    },
+
+    // OVERRIDE BLOCKING ALERT WITH ANIMATED TOASTS (HUMAN-IN-THE-LOOP UX)
+    initToastOverride() {
+        if (!window._origAlert) {
+            window._origAlert = window.alert;
+            window.alert = (msg) => {
+                const isErr = /error|fail|cannot|missing|invalid/i.test(String(msg));
+                const isWarn = /warning|caution|issue/i.test(String(msg));
+                const type = isErr ? 'error' : (isWarn ? 'warning' : 'success');
+                this.toast(String(msg), type);
+            };
+        }
+    },
+
     // 2. AUTHENTICATION & BOTTOM-LEFT LOGOUT
     checkAuth() {
         let auth = JSON.parse(localStorage.getItem('jdroid_auth') || 'null');
         const overlay = document.getElementById('auth-overlay');
 
         if (!auth) {
-            // Provide default admin session so human operators and demo runs are never blocked
-            auth = { email: 'admin@jdroidx.ai', role: 'System Administrator', loggedInAt: new Date().toISOString() };
-            localStorage.setItem('jdroid_auth', JSON.stringify(auth));
-            overlay.classList.remove('active');
-            this.updateUserBadge(auth.email, auth.role);
+            // Activate in-page authentication modal overlay cleanly
+            if (overlay) {
+                overlay.classList.add('active');
+            } else {
+                window.location.href = './login.html';
+            }
+            return;
         } else {
-            overlay.classList.remove('active');
+            if (overlay) overlay.classList.remove('active');
             this.updateUserBadge(auth.email, auth.role);
         }
 
         // Login form
         const loginForm = document.getElementById('form-login');
         if (loginForm) {
-            loginForm.addEventListener('submit', (e) => {
+            loginForm.addEventListener('submit', async (e) => {
                 e.preventDefault();
                 const email = document.getElementById('login-email').value;
+                const password = document.getElementById('login-password').value;
                 const role = document.getElementById('login-role').value;
-                this.login(email, role);
+                await this.login(email, password, role);
             });
         }
 
@@ -122,16 +185,33 @@ const App = {
         }
     },
 
-    login(email, role) {
+    async login(email, password, role) {
+        try {
+            if (typeof API !== 'undefined' && API.login) {
+                const res = await API.login(email, password);
+                if (res && res.token) {
+                    localStorage.setItem('jdroid_token', res.token);
+                }
+            }
+        } catch (err) {
+            console.warn('[App] Remote login note:', err.message);
+        }
         const auth = { email, role, loggedInAt: new Date().toISOString() };
         localStorage.setItem('jdroid_auth', JSON.stringify(auth));
-        document.getElementById('auth-overlay').classList.remove('active');
+        const overlay = document.getElementById('auth-overlay');
+        if (overlay) overlay.classList.remove('active');
         this.updateUserBadge(email, role);
     },
 
     logout() {
         localStorage.removeItem('jdroid_auth');
-        document.getElementById('auth-overlay').classList.add('active');
+        localStorage.removeItem('jdroid_token');
+        const overlay = document.getElementById('auth-overlay');
+        if (overlay) {
+            overlay.classList.add('active');
+        } else {
+            window.location.href = './login.html';
+        }
     },
 
     setLoginDemo(email, pass, role) {
@@ -298,16 +378,24 @@ const App = {
     },
 
     // 4c. DYNAMIC BRAND SINGLE SOURCE OF TRUTH APPLIER
-    applyBrandName(brandName, contactPhone) {
-        if (!brandName) return;
-        const brandTitle = document.getElementById('app-brand-title');
-        if (brandTitle) brandTitle.innerText = brandName;
-        document.title = `${brandName} — WhatsApp AI Ordering Desk & Executive Suite`;
-        const simContact = document.getElementById('chat-contact-name');
-        if (simContact) simContact.innerText = brandName;
-        document.querySelectorAll('.dynamic-brand-name').forEach(el => {
-            el.innerText = brandName;
-        });
+    applyBrandName(brandName, contactPhone, currencySymbol) {
+        if (brandName) {
+            this.currentBrandName = brandName;
+            const brandTitle = document.getElementById('app-brand-title');
+            if (brandTitle) brandTitle.innerText = brandName;
+            document.title = `${brandName} — WhatsApp AI Ordering Desk & Executive Suite`;
+            const simContact = document.getElementById('chat-contact-name');
+            if (simContact) simContact.innerText = brandName;
+            document.querySelectorAll('.dynamic-brand-name').forEach(el => {
+                el.innerText = brandName;
+            });
+        }
+        if (currencySymbol) {
+            this.currentCurrencySymbol = currencySymbol;
+            document.querySelectorAll('.dynamic-currency-symbol').forEach(el => {
+                el.innerText = currencySymbol;
+            });
+        }
     },
 
     // 4d. N8N WORKFLOW & MULTI-RESTAURANT CONFIGURATION PAGE
@@ -597,75 +685,101 @@ const App = {
             this.cachedAnalytics = a;
             this.renderDashboardCards();
 
-            // Render Orders Table with Expandable Details
-            const tbody = document.getElementById('dash-orders-table-body');
-            const orders = ordersRes.data || [];
-
-            if (orders.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="9" style="text-align:center; color:var(--text-dim);">No orders recorded yet</td></tr>';
-                return;
-            }
-
-            let html = '';
-            orders.forEach(o => {
-                const statusBadge = this.getStatusBadge(o.status);
-                const paymentBadge = this.getPaymentBadge(o.payment_status);
-
-                html += `
-                    <tr id="order-row-${o.id}">
-                        <td style="cursor:pointer;" onclick="App.toggleOrderDetails(${o.id})">
-                            <span id="expand-icon-${o.id}" style="font-size:11px; color:var(--text-muted);">▶</span>
-                        </td>
-                        <td><strong>#${o.order_code}</strong></td>
-                        <td>${o.customer_name}</td>
-                        <td>${o.quantity} x ${o.item_name}</td>
-                        <td><strong>₹${o.total_amount}</strong></td>
-                        <td>${statusBadge}</td>
-                        <td>${paymentBadge}</td>
-                        <td>${new Date(o.order_date).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</td>
-                        <td>
-                            <button class="btn btn-secondary" style="padding:3px 8px; font-size:11px;" onclick="App.toggleOrderDetails(${o.id})">
-                                Details
-                            </button>
-                        </td>
-                    </tr>
-                    <tr id="order-detail-${o.id}" class="order-detail-row">
-                        <td colspan="9" style="padding:0;">
-                            <div class="order-detail-box">
-                                <div class="detail-item">
-                                    <strong>Customer Contact:</strong>
-                                    <span>${o.customer_phone || 'WhatsApp Direct'}</span>
-                                    <div style="margin-top:6px;"><strong>Order Description:</strong> ${o.description || 'Order accepted (item available)'}</div>
-                                </div>
-                                <div class="detail-item">
-                                    <strong>Unit Price:</strong> ₹${o.unit_price} x ${o.quantity} portions
-                                    <div style="margin-top:6px;"><strong>Source Channel:</strong> ${o.source}</div>
-                                    <div style="margin-top:4px;"><strong>Kitchen Notes:</strong> ${o.notes || 'None'}</div>
-                                </div>
-                                <div class="detail-item">
-                                    <strong>Update Order Status:</strong>
-                                    <div style="display:flex; gap:6px; margin-top:4px; flex-wrap:wrap;">
-                                        <button class="btn btn-secondary" style="padding:2px 6px; font-size:10.5px;" onclick="App.changeOrderStatus(${o.id}, 'Accepted')">Accept</button>
-                                        <button class="btn btn-secondary" style="padding:2px 6px; font-size:10.5px;" onclick="App.changeOrderStatus(${o.id}, 'In Progress')">Cooking</button>
-                                        <button class="btn btn-primary" style="padding:2px 6px; font-size:10.5px;" onclick="App.changeOrderStatus(${o.id}, 'Delivered')">Deliver</button>
-                                        <button class="btn btn-danger" style="padding:2px 6px; font-size:10.5px;" onclick="App.changeOrderStatus(${o.id}, 'Rejected')">Reject</button>
-                                    </div>
-                                    <div style="margin-top:8px;">
-                                        <strong>Payment:</strong>
-                                        <button class="btn btn-secondary" style="padding:2px 6px; font-size:10.5px; margin-top:2px;" onclick="App.changePaymentStatus(${o.id}, 'Payment Received')">
-                                            Mark Paid ✅
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        </td>
-                    </tr>
-                `;
-            });
-            tbody.innerHTML = html;
+            // Cache and render orders with real-time filter support
+            this.cachedOrders = ordersRes.data || [];
+            this.filterOrders();
         } catch (err) {
             console.error('[Dashboard Error]:', err);
         }
+    },
+
+    filterOrders() {
+        const query = (document.getElementById('order-search')?.value || '').toLowerCase().trim();
+        const statusFilter = document.getElementById('order-status-filter')?.value || 'ALL';
+        let filtered = this.cachedOrders || [];
+
+        if (statusFilter !== 'ALL') {
+            filtered = filtered.filter(o => (o.status || '').toLowerCase() === statusFilter.toLowerCase());
+        }
+        if (query) {
+            filtered = filtered.filter(o => 
+                (o.order_code && o.order_code.toLowerCase().includes(query)) ||
+                (o.customer_name && o.customer_name.toLowerCase().includes(query)) ||
+                (o.item_name && o.item_name.toLowerCase().includes(query)) ||
+                (o.customer_phone && o.customer_phone.toLowerCase().includes(query))
+            );
+        }
+        this.renderOrdersTable(filtered);
+    },
+
+    renderOrdersTable(orders) {
+        const tbody = document.getElementById('dash-orders-table-body');
+        if (!tbody) return;
+
+        if (!orders || orders.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="9" style="text-align:center; color:var(--text-dim); padding:20px;">No matching orders found</td></tr>';
+            return;
+        }
+
+        const sym = this.currentCurrencySymbol || '₹';
+        let html = '';
+        orders.forEach(o => {
+            const statusBadge = this.getStatusBadge(o.status);
+            const paymentBadge = this.getPaymentBadge(o.payment_status);
+
+            html += `
+                <tr id="order-row-${o.id}">
+                    <td style="cursor:pointer;" onclick="App.toggleOrderDetails(${o.id})">
+                        <span id="expand-icon-${o.id}" style="font-size:11px; color:var(--text-muted);">▶</span>
+                    </td>
+                    <td><strong>#${o.order_code}</strong></td>
+                    <td>${o.customer_name}</td>
+                    <td>${o.quantity} x ${o.item_name}</td>
+                    <td><strong>${sym}${parseFloat(o.total_amount).toFixed(2)}</strong></td>
+                    <td>${statusBadge}</td>
+                    <td>${paymentBadge}</td>
+                    <td>${new Date(o.order_date).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</td>
+                    <td>
+                        <button class="btn btn-secondary" style="padding:3px 8px; font-size:11px;" onclick="App.toggleOrderDetails(${o.id})">
+                            Details
+                        </button>
+                    </td>
+                </tr>
+                <tr id="order-detail-${o.id}" class="order-detail-row">
+                    <td colspan="9" style="padding:0;">
+                        <div class="order-detail-box">
+                            <div class="detail-item">
+                                <strong>Customer Contact:</strong>
+                                <span>${o.customer_phone || 'WhatsApp Direct'}</span>
+                                <div style="margin-top:6px;"><strong>Order Description:</strong> ${o.description || 'Order accepted (item available)'}</div>
+                            </div>
+                            <div class="detail-item">
+                                <strong>Unit Price:</strong> ${sym}${parseFloat(o.unit_price).toFixed(2)} x ${o.quantity} portions
+                                <div style="margin-top:6px;"><strong>Source Channel:</strong> ${o.source}</div>
+                                <div style="margin-top:4px;"><strong>Kitchen Notes:</strong> ${o.notes || 'None'}</div>
+                            </div>
+                            <div class="detail-item">
+                                <strong>Update Order Status:</strong>
+                                <div style="display:flex; gap:6px; margin-top:4px; flex-wrap:wrap; align-items:center;">
+                                    <button class="btn btn-primary" style="padding:2px 8px; font-size:10.5px; font-weight:600;" onclick="App.openOrderActionModal('${o.order_code}', '${o.status}', '${o.payment_status}', ${o.id})">⚡ Quick Action</button>
+                                    <button class="btn btn-secondary" style="padding:2px 6px; font-size:10.5px;" onclick="App.changeOrderStatus(${o.id}, 'Accepted')">Accept</button>
+                                    <button class="btn btn-secondary" style="padding:2px 6px; font-size:10.5px;" onclick="App.changeOrderStatus(${o.id}, 'In Progress')">Cooking</button>
+                                    <button class="btn btn-primary" style="padding:2px 6px; font-size:10.5px;" onclick="App.changeOrderStatus(${o.id}, 'Delivered')">Deliver</button>
+                                    <button class="btn btn-danger" style="padding:2px 6px; font-size:10.5px;" onclick="App.changeOrderStatus(${o.id}, 'Rejected')">Reject</button>
+                                </div>
+                                <div style="margin-top:8px;">
+                                    <strong>Payment:</strong>
+                                    <button class="btn btn-secondary" style="padding:2px 6px; font-size:10.5px; margin-top:2px;" onclick="App.changePaymentStatus(${o.id}, 'Payment Received')">
+                                        Mark Paid ✅
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </td>
+                </tr>
+            `;
+        });
+        tbody.innerHTML = html;
     },
 
     toggleOrderDetails(orderId) {
@@ -695,10 +809,136 @@ const App = {
     async changePaymentStatus(id, payment_status) {
         try {
             await API.updateOrderPayment(id, payment_status);
+            this.showNotificationDrawer('💳 Payment Recorded', `Order payment updated to: ${payment_status}`, 'View Financials', () => App.navigateTo('dashboard'));
             this.loadDashboardData();
         } catch (err) {
             alert('Could not update payment: ' + err.message);
         }
+    },
+
+    // MULTI-OPTION ORDER ACTION DIALOG
+    openOrderActionModal(orderCode, currentStatus, currentPayment, orderId) {
+        this.activeActionOrderId = orderId;
+        this.activeActionOrderCode = orderCode;
+        const codeEl = document.getElementById('modal-order-code');
+        if (codeEl) codeEl.innerText = orderCode;
+
+        // Reset radio selection to first option
+        this.selectedOrderActionType = 'STATUS_CONFIRMED';
+        const cards = document.querySelectorAll('#order-action-options .modal-option-card');
+        cards.forEach((c, idx) => {
+            if (idx === 0) {
+                c.classList.add('selected');
+                const radio = c.querySelector('input[type="radio"]');
+                if (radio) radio.checked = true;
+            } else {
+                c.classList.remove('selected');
+            }
+        });
+
+        const modal = document.getElementById('modal-order-action');
+        if (modal) modal.classList.add('active');
+    },
+
+    closeOrderActionModal() {
+        const modal = document.getElementById('modal-order-action');
+        if (modal) modal.classList.remove('active');
+        this.activeActionOrderId = null;
+        this.activeActionOrderCode = null;
+    },
+
+    selectOrderAction(actionType, element) {
+        this.selectedOrderActionType = actionType;
+        const cards = document.querySelectorAll('#order-action-options .modal-option-card');
+        cards.forEach(c => c.classList.remove('selected'));
+        if (element) {
+            element.classList.add('selected');
+            const radio = element.querySelector('input[type="radio"]');
+            if (radio) radio.checked = true;
+        }
+    },
+
+    async submitOrderAction() {
+        if (!this.activeActionOrderId) return;
+        const orderId = this.activeActionOrderId;
+        const orderCode = this.activeActionOrderCode;
+        const action = this.selectedOrderActionType;
+
+        try {
+            if (action === 'STATUS_CONFIRMED') {
+                await API.updateOrderStatus(orderId, 'Confirmed');
+                this.showNotificationDrawer('🍳 Order Confirmed', `Order ${orderCode} sent to kitchen for cooking.`, 'View Orders', () => App.navigateTo('dashboard'));
+            } else if (action === 'STATUS_COMPLETED') {
+                await API.updateOrderStatus(orderId, 'Delivered');
+                this.showNotificationDrawer('✅ Order Delivered', `Order ${orderCode} marked delivered. CFO revenue updated!`, 'View Financials', () => App.navigateTo('dashboard'));
+            } else if (action === 'PAYMENT_PAID') {
+                await API.updateOrderPayment(orderId, 'Payment Received');
+                this.showNotificationDrawer('💳 Payment Recorded', `Payment cleared for ${orderCode}.`, 'View CFO', () => App.navigateTo('dashboard'));
+            } else if (action === 'CANCEL_RESTOCK') {
+                await API.updateOrderStatus(orderId, 'Cancelled');
+                this.showNotificationDrawer('🛑 Order Cancelled', `Order ${orderCode} cancelled and inventory restored.`, 'Audit Log', () => App.navigateTo('audit'));
+            }
+
+            this.closeOrderActionModal();
+            this.loadDashboardData();
+        } catch (err) {
+            this.toast('Action failed: ' + err.message, 'error');
+        }
+    },
+
+    // SLIDE IN/OUT NOTIFICATION DRAWER (BOTTOM-RIGHT)
+    showNotificationDrawer(title, body, actionLabel = 'View', actionCallback = null) {
+        const drawer = document.getElementById('notification-drawer');
+        const titleEl = document.getElementById('drawer-title');
+        const bodyEl = document.getElementById('drawer-body');
+        const actionBtn = document.getElementById('drawer-action-btn');
+
+        if (!drawer) return;
+        if (titleEl) titleEl.innerHTML = title;
+        if (bodyEl) bodyEl.innerText = body;
+        if (actionBtn) {
+            actionBtn.innerText = actionLabel;
+            actionBtn.onclick = () => {
+                this.closeNotificationDrawer();
+                if (typeof actionCallback === 'function') actionCallback();
+            };
+        }
+
+        drawer.classList.add('active');
+        if (this._drawerTimeout) clearTimeout(this._drawerTimeout);
+        this._drawerTimeout = setTimeout(() => this.closeNotificationDrawer(), 6000);
+    },
+
+    closeNotificationDrawer() {
+        const drawer = document.getElementById('notification-drawer');
+        if (drawer) drawer.classList.remove('active');
+    },
+
+    // NON-BLOCKING CONFIRMATION MODAL (HUMAN-IN-THE-LOOP UX)
+    confirmAction(title, message, onConfirm, confirmText = 'Confirm Delete', confirmClass = 'btn-danger') {
+        const modal = document.getElementById('modal-confirm-dialog');
+        const titleEl = document.getElementById('confirm-dialog-title');
+        const msgEl = document.getElementById('confirm-dialog-message');
+        const proceedBtn = document.getElementById('confirm-dialog-proceed-btn');
+
+        if (titleEl) titleEl.innerText = title;
+        if (msgEl) msgEl.innerText = message;
+        if (proceedBtn) {
+            proceedBtn.innerText = confirmText;
+            proceedBtn.className = `btn ${confirmClass}`;
+            proceedBtn.onclick = async () => {
+                this.closeConfirmModal();
+                if (typeof onConfirm === 'function') {
+                    await onConfirm();
+                }
+            };
+        }
+        if (modal) modal.classList.add('active');
+    },
+
+    closeConfirmModal() {
+        const modal = document.getElementById('modal-confirm-dialog');
+        if (modal) modal.classList.remove('active');
     },
 
     getStatusBadge(status) {
@@ -737,6 +977,7 @@ const App = {
             document.getElementById('rest-hours').value = data.opening_hours || '09:00 AM - 11:00 PM';
             document.getElementById('rest-contact').value = data.contact_number || '+95 1224567890';
             document.getElementById('rest-delivery').checked = !!data.delivery_enabled;
+            this.applyBrandName(data.restaurant_name, data.contact_number, data.currency_symbol);
         } catch (err) {
             alert('Failed to load profile: ' + err.message);
         }
@@ -744,6 +985,12 @@ const App = {
 
     async saveRestaurantProfile(e) {
         e.preventDefault();
+        const submitBtn = e.target.querySelector('button[type="submit"]');
+        const origText = submitBtn ? submitBtn.innerHTML : '';
+        if (submitBtn) {
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = 'Saving Profile... ⏳';
+        }
         try {
             const body = {
                 restaurant_name: document.getElementById('rest-name').value,
@@ -755,28 +1002,99 @@ const App = {
                 delivery_enabled: document.getElementById('rest-delivery').checked
             };
             await API.updateRestaurant(body);
-            this.applyBrandName(body.restaurant_name, body.contact_number);
-            alert('Cafe profile saved successfully! Brand updated across system.');
+            this.applyBrandName(body.restaurant_name, body.contact_number, body.currency_symbol);
+            this.showNotificationDrawer('💾 Profile Saved', 'Cafe profile saved! Brand and currency updated across system.', 'Dashboard', () => App.navigateTo('dashboard'));
             this.loadHealthAndStatus();
             this.loadN8nWorkflowPage();
         } catch (err) {
-            alert('Failed to save profile: ' + err.message);
+            this.toast('Failed to save profile: ' + err.message, 'error');
+        } finally {
+            if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = origText;
+            }
         }
     },
 
-    // 7. MENU & INVENTORY
+    // 7. MENU & INVENTORY (TABLE VIEW + 3D CARD FLIPPER)
     async loadMenuItems() {
         try {
             const search = document.getElementById('menu-search')?.value || '';
             const res = await API.getMenu(search ? `?search=${encodeURIComponent(search)}` : '');
-            const tbody = document.getElementById('menu-table-body');
+            this.cachedMenuItems = res.data || [];
+            this.populateCategoryFilter(this.cachedMenuItems);
+            this.renderFilteredMenu();
+        } catch (err) {
+            console.error('Menu load error:', err);
+        }
+    },
 
-            tbody.innerHTML = (res.data || []).map(item => `
+    populateCategoryFilter(items) {
+        const select = document.getElementById('menu-category-filter');
+        if (!select) return;
+        const currentVal = this.selectedCategoryFilter || 'ALL';
+        const counts = { ALL: items.length };
+        items.forEach(it => {
+            const cat = it.category || 'General';
+            counts[cat] = (counts[cat] || 0) + 1;
+        });
+        const categories = Object.keys(counts).filter(c => c !== 'ALL');
+        select.innerHTML = `
+            <option value="ALL">All Categories (${counts.ALL})</option>
+            ${categories.map(cat => `<option value="${cat}" ${cat === currentVal ? 'selected' : ''}>${cat} (${counts[cat]})</option>`).join('')}
+        `;
+    },
+
+    setMenuViewMode(mode) {
+        this.menuViewMode = mode;
+        const btnTable = document.getElementById('btn-view-table');
+        const btnFlipper = document.getElementById('btn-view-flipper');
+        const tableContainer = document.getElementById('menu-table-container');
+        const flipperGrid = document.getElementById('menu-flipper-grid');
+
+        if (mode === 'flipper') {
+            if (btnTable) btnTable.classList.remove('active');
+            if (btnFlipper) btnFlipper.classList.add('active');
+            if (tableContainer) tableContainer.style.display = 'none';
+            if (flipperGrid) flipperGrid.style.display = 'grid';
+        } else {
+            if (btnTable) btnTable.classList.add('active');
+            if (btnFlipper) btnFlipper.classList.remove('active');
+            if (tableContainer) tableContainer.style.display = 'block';
+            if (flipperGrid) flipperGrid.style.display = 'none';
+        }
+        this.renderFilteredMenu();
+    },
+
+    filterMenuByCategory(category) {
+        this.selectedCategoryFilter = category;
+        this.renderFilteredMenu();
+    },
+
+    renderFilteredMenu() {
+        let items = this.cachedMenuItems || [];
+        const search = document.getElementById('menu-search')?.value?.toLowerCase() || '';
+        if (search) {
+            items = items.filter(it => 
+                (it.item_name && it.item_name.toLowerCase().includes(search)) ||
+                (it.item_code && it.item_code.toLowerCase().includes(search)) ||
+                (it.category && it.category.toLowerCase().includes(search))
+            );
+        }
+        if (this.selectedCategoryFilter && this.selectedCategoryFilter !== 'ALL') {
+            items = items.filter(it => it.category === this.selectedCategoryFilter);
+        }
+
+        // 1. Render Table Rows
+        const tbody = document.getElementById('menu-table-body');
+        const sym = this.currentCurrencySymbol || '₹';
+        if (tbody) {
+            tbody.innerHTML = items.map(item => `
                 <tr>
                     <td><code>${item.item_code}</code></td>
                     <td><strong>${item.item_name}</strong></td>
                     <td><span class="badge badge-category">${item.category}</span></td>
-                    <td>₹${item.price}</td>
+                    <td>${sym}${parseFloat(item.price).toFixed(2)}</td>
                     <td>${item.quantity}</td>
                     <td>
                         <span class="badge ${item.status === 'AVAILABLE' ? 'badge-available' : 'badge-out-of-stock'}">
@@ -785,6 +1103,7 @@ const App = {
                     </td>
                     <td>
                         <div class="btn-group">
+                            <button class="btn btn-secondary" style="padding:2px 7px; font-size:11px;" onclick="App.openEditMenuModal(${item.id})">Edit ✏️</button>
                             <button class="btn btn-secondary" style="padding:2px 7px; font-size:11px;" onclick="App.toggleMenuAvailability(${item.id})">
                                 ${item.status === 'AVAILABLE' ? 'Out of Stock' : 'In Stock'}
                             </button>
@@ -793,8 +1112,105 @@ const App = {
                     </td>
                 </tr>
             `).join('') || '<tr><td colspan="7" style="text-align:center;">No menu items found</td></tr>';
-        } catch (err) {
-            console.error('Menu load error:', err);
+        }
+
+        // 2. Render 3D Flipper Cards
+        this.renderMenuFlipperCards(items);
+    },
+
+    renderMenuFlipperCards(items) {
+        const grid = document.getElementById('menu-flipper-grid');
+        if (!grid) return;
+        if (!items || items.length === 0) {
+            grid.innerHTML = '<div style="grid-column: 1/-1; text-align:center; color:var(--text-muted); padding:30px;">No menu items found</div>';
+            return;
+        }
+
+        const sym = this.currentCurrencySymbol || '₹';
+        grid.innerHTML = items.map(item => `
+            <div class="flipper-container" id="flipper-container-${item.id}">
+                <div class="flipper-card" id="flipper-card-${item.id}">
+                    <!-- FRONT FACE -->
+                    <div class="flipper-face flipper-front">
+                        <div>
+                            <div class="flipper-header">
+                                <span class="flipper-code">${item.item_code}</span>
+                                <span class="badge ${item.status === 'AVAILABLE' ? 'badge-available' : 'badge-out-of-stock'}">
+                                    ${item.status === 'AVAILABLE' ? 'In Stock (' + item.quantity + ')' : 'Out of Stock'}
+                                </span>
+                            </div>
+                            <div class="flipper-title">${item.item_name}</div>
+                            <div class="flipper-category">🍽️ ${item.category}</div>
+                            <div class="flipper-price">${sym}${parseFloat(item.price).toFixed(2)}</div>
+                            <div style="font-size:12px; color:var(--text-muted); line-height:1.4;">
+                                ${item.description || 'Authentic freshly prepared delicacy served hot.'}
+                            </div>
+                        </div>
+                        <div class="flipper-footer">
+                            <div class="btn-group">
+                                <button class="btn btn-secondary" style="padding:3px 8px; font-size:11px;" onclick="App.toggleMenuAvailability(${item.id})">
+                                    ${item.status === 'AVAILABLE' ? 'Mark Out' : 'Restock'}
+                                </button>
+                            </div>
+                            <button class="btn-flip" onclick="App.flipCard(${item.id})">Flip Info 🔄</button>
+                        </div>
+                    </div>
+
+                    <!-- BACK FACE -->
+                    <div class="flipper-face flipper-back">
+                        <div>
+                            <div class="flipper-header">
+                                <span class="badge badge-accent">Kitchen Specs</span>
+                                <span style="font-size:11px; font-family:var(--font-mono); color:var(--brand-primary);">${item.item_code}</span>
+                            </div>
+                            <div style="font-size:13px; font-weight:700; color:var(--text-main); margin-top:8px;">${item.item_name} Details</div>
+                            <div style="font-size:11.5px; color:var(--text-muted); margin-top:6px; line-height:1.5;">
+                                <div>🌱 <strong>Dietary:</strong> 100% Vegetarian / Halal Fresh</div>
+                                <div>📦 <strong>Stock Qty:</strong> ${item.quantity} portions</div>
+                                <div>⚡ <strong>Rule 2 Check:</strong> ${item.status === 'AVAILABLE' ? 'Active in WhatsApp ordering' : 'Blocked (Rule 2 auto-rejection)'}</div>
+                            </div>
+                        </div>
+                        <div class="flipper-footer">
+                            <div class="btn-group">
+                                <button class="btn btn-secondary" style="padding:3px 8px; font-size:11px;" onclick="App.openEditMenuModal(${item.id})">Edit ✏️</button>
+                                <button class="btn btn-danger" style="padding:3px 8px; font-size:11px;" onclick="App.deleteMenuItem(${item.id})">Delete</button>
+                            </div>
+                            <button class="btn-flip" onclick="App.flipCard(${item.id})">Flip Back ↩️</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `).join('');
+    },
+
+    openEditMenuModal(id) {
+        const item = (this.cachedMenuItems || []).find(i => i.id === id);
+        if (!item) return;
+
+        document.getElementById('edit-menu-id').value = item.id;
+        document.getElementById('edit-menu-code').value = item.item_code;
+        document.getElementById('edit-menu-name').value = item.item_name;
+        document.getElementById('edit-menu-category').value = item.category || 'General';
+        document.getElementById('edit-menu-price').value = item.price;
+        document.getElementById('edit-menu-qty').value = item.quantity;
+        document.getElementById('edit-menu-status').value = item.status;
+        document.getElementById('edit-menu-desc').value = item.description || '';
+        const titleEl = document.getElementById('edit-menu-code-title');
+        if (titleEl) titleEl.innerText = `${item.item_code} — ${item.item_name}`;
+
+        const modal = document.getElementById('modal-edit-menu');
+        if (modal) modal.classList.add('active');
+    },
+
+    closeEditMenuModal() {
+        const modal = document.getElementById('modal-edit-menu');
+        if (modal) modal.classList.remove('active');
+    },
+
+    flipCard(id) {
+        const card = document.getElementById(`flipper-card-${id}`);
+        if (card) {
+            card.classList.toggle('is-flipped');
         }
     },
 
@@ -807,14 +1223,24 @@ const App = {
         }
     },
 
-    async deleteMenuItem(id) {
-        if (!confirm('Delete this menu item?')) return;
-        try {
-            await API.deleteMenu(id);
-            this.loadMenuItems();
-        } catch (err) {
-            alert('Error deleting item: ' + err.message);
-        }
+    deleteMenuItem(id) {
+        const item = (this.cachedMenuItems || []).find(i => i.id === id);
+        const name = item ? `"${item.item_name}"` : 'this menu item';
+        this.confirmAction(
+            '⚠️ Delete Menu Item',
+            `Are you sure you want to delete ${name}? This action cannot be undone.`,
+            async () => {
+                try {
+                    await API.deleteMenu(id);
+                    this.loadMenuItems();
+                    this.showNotificationDrawer('🗑️ Item Deleted', `${name} was removed from the menu.`, 'View Menu', () => App.navigateTo('menu'));
+                } catch (err) {
+                    this.toast('Error deleting item: ' + err.message, 'error');
+                }
+            },
+            'Delete Item',
+            'btn-danger'
+        );
     },
 
     // 8. BULK MENU CSV UPLOAD & TEMPLATE DOWNLOAD
@@ -903,15 +1329,19 @@ const App = {
         try {
             const search = document.getElementById('faq-search')?.value || '';
             const res = await API.getFAQ(search ? `?search=${encodeURIComponent(search)}` : '');
+            this.cachedFaqItems = res.data || [];
             const tbody = document.getElementById('faq-table-body');
 
-            tbody.innerHTML = (res.data || []).map(f => `
+            tbody.innerHTML = this.cachedFaqItems.map(f => `
                 <tr>
                     <td><span class="badge badge-category">${f.category}</span></td>
                     <td><strong>${f.question}</strong></td>
                     <td style="max-width:350px;">${f.answer}</td>
                     <td>
-                        <button class="btn btn-danger" style="padding:2px 7px; font-size:11px;" onclick="App.deleteFAQItem(${f.id})">Delete</button>
+                        <div class="btn-group">
+                            <button class="btn btn-secondary" style="padding:2px 7px; font-size:11px;" onclick="App.openEditFAQModal(${f.id})">Edit ✏️</button>
+                            <button class="btn btn-danger" style="padding:2px 7px; font-size:11px;" onclick="App.deleteFAQItem(${f.id})">Delete</button>
+                        </div>
                     </td>
                 </tr>
             `).join('') || '<tr><td colspan="4" style="text-align:center;">No FAQs found</td></tr>';
@@ -920,14 +1350,42 @@ const App = {
         }
     },
 
-    async deleteFAQItem(id) {
-        if (!confirm('Delete this FAQ?')) return;
-        try {
-            await API.deleteFAQ(id);
-            this.loadFAQItems();
-        } catch (err) {
-            alert('Error deleting FAQ: ' + err.message);
-        }
+    openEditFAQModal(id) {
+        const faq = (this.cachedFaqItems || []).find(f => f.id === id);
+        if (!faq) return;
+
+        document.getElementById('edit-faq-id').value = faq.id;
+        document.getElementById('edit-faq-category').value = faq.category || 'General';
+        document.getElementById('edit-faq-question').value = faq.question;
+        document.getElementById('edit-faq-answer').value = faq.answer;
+
+        const modal = document.getElementById('modal-edit-faq');
+        if (modal) modal.classList.add('active');
+    },
+
+    closeEditFAQModal() {
+        const modal = document.getElementById('modal-edit-faq');
+        if (modal) modal.classList.remove('active');
+    },
+
+    deleteFAQItem(id) {
+        const faq = (this.cachedFaqItems || []).find(f => f.id === id);
+        const name = faq ? `"${faq.question}"` : 'this FAQ';
+        this.confirmAction(
+            '⚠️ Delete FAQ',
+            `Are you sure you want to delete ${name}? The AI agent will no longer answer this question.`,
+            async () => {
+                try {
+                    await API.deleteFAQ(id);
+                    this.loadFAQItems();
+                    this.showNotificationDrawer('🗑️ FAQ Deleted', `FAQ was removed.`, 'View FAQ', () => App.navigateTo('faq'));
+                } catch (err) {
+                    this.toast('Error deleting FAQ: ' + err.message, 'error');
+                }
+            },
+            'Delete FAQ',
+            'btn-danger'
+        );
     },
 
     // 10. AI AGENT SETTINGS & PROMPT PREVIEW
@@ -1206,7 +1664,9 @@ const App = {
                 this.appendChatBubble(data.reply, 'outbound');
 
                 // Update status and trace
-                const routeMode = data.agentDecision === 'N8N_API' ? '✅ n8n Webhook' : '🤖 Local Mock AI';
+                const routeMode = data.agentDecision === 'N8N_API'
+                    ? '✅ n8n Webhook'
+                    : (data.agentDecision === 'DEMO_STATIC' ? '🤖 GitHub Pages Demo AI' : '🤖 Local Mock AI');
                 if (statusDiv) {
                     statusDiv.innerText = `${routeMode} — Response received`;
                     statusDiv.style.color = data.agentDecision === 'N8N_API'
@@ -1339,42 +1799,138 @@ const App = {
         // Add Menu Form
         document.getElementById('form-add-menu').addEventListener('submit', async (e) => {
             e.preventDefault();
+            const submitBtn = e.target.querySelector('button[type="submit"]');
+            const origText = submitBtn ? submitBtn.innerHTML : '';
+            if (submitBtn) {
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = 'Adding Item... ⏳';
+            }
             try {
                 const body = {
-                    item_code: document.getElementById('new-menu-code').value,
-                    item_name: document.getElementById('new-menu-name').value,
-                    category: document.getElementById('new-menu-category').value,
+                    item_code: document.getElementById('new-menu-code').value.trim(),
+                    item_name: document.getElementById('new-menu-name').value.trim(),
+                    category: document.getElementById('new-menu-category').value.trim(),
                     price: parseFloat(document.getElementById('new-menu-price').value),
                     quantity: parseInt(document.getElementById('new-menu-qty').value, 10),
-                    description: document.getElementById('new-menu-desc').value,
+                    description: document.getElementById('new-menu-desc').value.trim(),
                     status: document.getElementById('new-menu-status').value
                 };
                 await API.createMenu(body);
                 document.getElementById('modal-add-menu').classList.remove('active');
                 e.target.reset();
                 this.loadMenuItems();
+                this.showNotificationDrawer('✨ Item Added', `${body.item_name} added to menu!`, 'View Menu', () => App.navigateTo('menu'));
             } catch (err) {
-                alert('Error creating menu item: ' + err.message);
+                this.toast('Error creating menu item: ' + err.message, 'error');
+            } finally {
+                if (submitBtn) {
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = origText;
+                }
             }
         });
 
         // Add FAQ Form
         document.getElementById('form-add-faq').addEventListener('submit', async (e) => {
             e.preventDefault();
+            const submitBtn = e.target.querySelector('button[type="submit"]');
+            const origText = submitBtn ? submitBtn.innerHTML : '';
+            if (submitBtn) {
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = 'Adding FAQ... ⏳';
+            }
             try {
                 const body = {
-                    category: document.getElementById('new-faq-category').value,
-                    question: document.getElementById('new-faq-question').value,
-                    answer: document.getElementById('new-faq-answer').value
+                    category: document.getElementById('new-faq-category').value.trim(),
+                    question: document.getElementById('new-faq-question').value.trim(),
+                    answer: document.getElementById('new-faq-answer').value.trim()
                 };
                 await API.createFAQ(body);
                 document.getElementById('modal-add-faq').classList.remove('active');
                 e.target.reset();
                 this.loadFAQItems();
+                this.showNotificationDrawer('✨ FAQ Added', `New FAQ added to knowledge base!`, 'View FAQ', () => App.navigateTo('faq'));
             } catch (err) {
-                alert('Error creating FAQ: ' + err.message);
+                this.toast('Error creating FAQ: ' + err.message, 'error');
+            } finally {
+                if (submitBtn) {
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = origText;
+                }
             }
         });
+
+        // Edit Menu Form
+        const formEditMenu = document.getElementById('form-edit-menu');
+        if (formEditMenu) {
+            formEditMenu.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const id = document.getElementById('edit-menu-id').value;
+                if (!id) return;
+                const submitBtn = formEditMenu.querySelector('button[type="submit"]');
+                const origText = submitBtn ? submitBtn.innerHTML : '';
+                if (submitBtn) {
+                    submitBtn.disabled = true;
+                    submitBtn.innerHTML = 'Updating Item... ⏳';
+                }
+                try {
+                    const body = {
+                        item_code: document.getElementById('edit-menu-code').value.trim(),
+                        item_name: document.getElementById('edit-menu-name').value.trim(),
+                        category: document.getElementById('edit-menu-category').value.trim(),
+                        price: parseFloat(document.getElementById('edit-menu-price').value),
+                        quantity: parseInt(document.getElementById('edit-menu-qty').value, 10),
+                        status: document.getElementById('edit-menu-status').value,
+                        description: document.getElementById('edit-menu-desc').value.trim()
+                    };
+                    await API.updateMenu(id, body);
+                    this.closeEditMenuModal();
+                    this.loadMenuItems();
+                    this.showNotificationDrawer('✏️ Item Updated', `${body.item_name} updated successfully!`, 'View Menu', () => App.navigateTo('menu'));
+                } catch (err) {
+                    this.toast('Error updating menu item: ' + err.message, 'error');
+                } finally {
+                    if (submitBtn) {
+                        submitBtn.disabled = false;
+                        submitBtn.innerHTML = origText;
+                    }
+                }
+            });
+        }
+
+        // Edit FAQ Form
+        const formEditFaq = document.getElementById('form-edit-faq');
+        if (formEditFaq) {
+            formEditFaq.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const id = document.getElementById('edit-faq-id').value;
+                if (!id) return;
+                const submitBtn = formEditFaq.querySelector('button[type="submit"]');
+                const origText = submitBtn ? submitBtn.innerHTML : '';
+                if (submitBtn) {
+                    submitBtn.disabled = true;
+                    submitBtn.innerHTML = 'Updating FAQ... ⏳';
+                }
+                try {
+                    const body = {
+                        category: document.getElementById('edit-faq-category').value.trim(),
+                        question: document.getElementById('edit-faq-question').value.trim(),
+                        answer: document.getElementById('edit-faq-answer').value.trim()
+                    };
+                    await API.updateFAQ(id, body);
+                    this.closeEditFAQModal();
+                    this.loadFAQItems();
+                    this.showNotificationDrawer('✏️ FAQ Updated', `FAQ updated successfully!`, 'View FAQ', () => App.navigateTo('faq'));
+                } catch (err) {
+                    this.toast('Error updating FAQ: ' + err.message, 'error');
+                } finally {
+                    if (submitBtn) {
+                        submitBtn.disabled = false;
+                        submitBtn.innerHTML = origText;
+                    }
+                }
+            });
+        }
 
         // Simulation flag toggles
         ['sim-llm-fail', 'sim-inv-fail', 'sim-wa-fail'].forEach(id => {

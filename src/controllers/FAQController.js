@@ -35,10 +35,15 @@ class FAQController {
 
     create(req, res) {
         try {
-            if (!req.body.question || !req.body.answer) {
-                return res.status(400).json({ success: false, error: 'question and answer are required' });
+            const question = (req.body.question || '').trim();
+            const answer = (req.body.answer || '').trim();
+            if (!question || question.length < 3) {
+                return res.status(400).json({ success: false, error: 'Question must be at least 3 characters long' });
             }
-            const item = this.model.create(req.body);
+            if (!answer || answer.length < 3) {
+                return res.status(400).json({ success: false, error: 'Answer must be at least 3 characters long' });
+            }
+            const item = this.model.create({ ...req.body, question, answer });
             res.status(201).json({ success: true, data: item, message: 'FAQ created successfully' });
         } catch (err) {
             res.status(400).json({ success: false, error: err.message });
@@ -47,7 +52,20 @@ class FAQController {
 
     update(req, res) {
         try {
-            const item = this.model.update(req.params.id, req.body);
+            const updates = { ...req.body };
+            if (updates.question !== undefined) {
+                updates.question = String(updates.question).trim();
+                if (updates.question.length < 3) {
+                    return res.status(400).json({ success: false, error: 'Question must be at least 3 characters long' });
+                }
+            }
+            if (updates.answer !== undefined) {
+                updates.answer = String(updates.answer).trim();
+                if (updates.answer.length < 3) {
+                    return res.status(400).json({ success: false, error: 'Answer must be at least 3 characters long' });
+                }
+            }
+            const item = this.model.update(req.params.id, updates);
             res.json({ success: true, data: item, message: 'FAQ updated successfully' });
         } catch (err) {
             res.status(400).json({ success: false, error: err.message });

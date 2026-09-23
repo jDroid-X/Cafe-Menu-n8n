@@ -30,6 +30,9 @@ async function main() {
       console.log('Webhook response:', d.substring(0, 300));
     });
   });
+  req.on('error', (err) => {
+    console.log('Webhook check: n8n on port 5678 is not currently listening (' + err.code + ')');
+  });
   req.write(body);
   req.end();
 }

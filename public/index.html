@@ -7,6 +7,8 @@
     <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
+    <!-- TOAST NOTIFICATION CONTAINER -->
+    <div id="toast-container" class="toast-container"></div>
 
     <!-- AUTHENTICATION OVERLAY / LOGIN PAGE -->
     <div id="auth-overlay" class="auth-overlay">
@@ -205,8 +207,18 @@
                 </div>
 
                 <!-- EXPANDABLE ORDERS TABLE -->
-                <div class="section-header" style="margin-top: 18px;">
+                <div class="section-header" style="margin-top: 18px; flex-wrap: wrap; gap: 8px;">
                     <div class="section-title">🧾 Real-Time Order Management (Expand for Full Details)</div>
+                    <div class="btn-group" style="align-items: center; gap: 8px;">
+                        <input type="text" id="order-search" placeholder="Search orders (code, customer, item)..." style="width: 200px;" oninput="App.filterOrders()">
+                        <select id="order-status-filter" class="rich-select" onchange="App.filterOrders()" title="Filter orders by status">
+                            <option value="ALL">All Statuses</option>
+                            <option value="Confirmed">Confirmed / Accepted</option>
+                            <option value="In Progress">In Progress / Cooking</option>
+                            <option value="Delivered">Delivered / Completed</option>
+                            <option value="Rejected">Rejected / Cancelled</option>
+                        </select>
+                    </div>
                 </div>
                 <div class="table-container">
                     <table>
@@ -258,9 +270,11 @@
                                 <label for="rest-symbol">Currency Symbol</label>
                                 <input type="text" id="rest-symbol" value="₹">
                             </div>
-                            <div class="form-group" style="justify-content: flex-end;">
-                                <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
-                                    <input type="checkbox" id="rest-delivery" checked> Enable Home Delivery
+                            <div class="form-group" style="justify-content: flex-end; align-items: center; display: flex; gap: 10px;">
+                                <label for="rest-delivery" style="margin-bottom: 0; cursor: pointer; font-size: 12.5px;">Enable Home Delivery</label>
+                                <label class="switch-ui" title="Toggle Home Delivery (On / Off)">
+                                    <input type="checkbox" id="rest-delivery" checked>
+                                    <span class="switch-slider"></span>
                                 </label>
                             </div>
                             <div class="form-group full-width">
@@ -275,18 +289,35 @@
                 </div>
             </section>
 
-            <!-- SCREEN 03: MENU & INVENTORY (WITH BULK CSV UPLOAD) -->
+            <!-- SCREEN 03: MENU & INVENTORY (WITH 3D CARD FLIPPER & BULK CSV UPLOAD) -->
             <section id="screen-menu" class="screen-view">
                 <div class="section-header">
                     <div class="section-title">📋 Cafe Menu & Stock Inventory</div>
-                    <div class="btn-group">
-                        <input type="text" id="menu-search" placeholder="Search menu items..." style="width: 180px;">
-                        <button class="btn btn-secondary" id="btn-download-template" onclick="App.downloadMenuTemplate()">📥 Download Template</button>
-                        <button class="btn btn-secondary" id="btn-open-bulk-menu" onclick="App.openBulkModal()">📤 Bulk Upload CSV</button>
+                    <div class="btn-group" style="flex-wrap: wrap; gap: 8px; align-items: center;">
+                        <!-- SEGMENTED TOGGLE (LEFT / RIGHT): TABLE VIEW VS 3D CARD FLIPPER -->
+                        <div class="segmented-toggle" id="menu-view-toggle" title="Switch layout: Table View vs 3D Card Flipper">
+                            <button class="segmented-btn active" id="btn-view-table" onclick="App.setMenuViewMode('table')">📋 Table</button>
+                            <button class="segmented-btn" id="btn-view-flipper" onclick="App.setMenuViewMode('flipper')">🎴 3D Cards</button>
+                        </div>
+
+                        <!-- RICH LIST BOX / DROPDOWN: CATEGORY FILTER WITH DYNAMIC COUNTS -->
+                        <div class="rich-listbox-container">
+                            <select id="menu-category-filter" class="rich-select" onchange="App.filterMenuByCategory(this.value)" title="Filter by food category">
+                                <option value="ALL">All Categories</option>
+                                <option value="Snacks">Snacks</option>
+                                <option value="Beverages">Beverages</option>
+                            </select>
+                        </div>
+
+                        <input type="text" id="menu-search" placeholder="Search food items..." style="width: 160px;">
+                        <button class="btn btn-secondary" id="btn-download-template" onclick="App.downloadMenuTemplate()">📥 Template</button>
+                        <button class="btn btn-secondary" id="btn-open-bulk-menu" onclick="App.openBulkModal()">📤 Bulk CSV</button>
                         <button class="btn btn-primary" id="btn-open-add-menu">+ Add Item</button>
                     </div>
                 </div>
-                <div class="table-container">
+
+                <!-- VIEW 1: INTERACTIVE TABLE CONTAINER -->
+                <div class="table-container" id="menu-table-container">
                     <table>
                         <thead>
                             <tr>
@@ -303,6 +334,11 @@
                             <!-- Populated via App.loadMenuItems() -->
                         </tbody>
                     </table>
+                </div>
+
+                <!-- VIEW 2: 3D CARD FLIPPER GRID -->
+                <div id="menu-flipper-grid" class="flipper-grid" style="display: none;">
+                    <!-- Populated dynamically via App.renderMenuFlipperCards() -->
                 </div>
             </section>
 
@@ -418,10 +454,12 @@
                     </div>
                     <div class="pipeline-stage-body">
                         <div style="max-width: 600px;">
-                            <div class="form-group">
-                                <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
-                                    <input type="checkbox" id="mem-enabled" checked> Enable Conversation Memory Context
+                            <div class="form-group" style="display: flex; align-items: center; gap: 10px;">
+                                <label class="switch-ui" title="Toggle Conversation Memory Context (On / Off)">
+                                    <input type="checkbox" id="mem-enabled" checked>
+                                    <span class="switch-slider"></span>
                                 </label>
+                                <label for="mem-enabled" style="margin-bottom: 0; cursor: pointer; font-size: 13px;">Enable Conversation Memory Context</label>
                             </div>
                             <div class="form-group">
                                 <label for="mem-type">Memory Buffer Type</label>
@@ -935,6 +973,160 @@
                     <button type="submit" class="btn btn-primary">Save FAQ</button>
                 </div>
             </form>
+        </div>
+    </div>
+
+    <!-- MODAL: MULTI-OPTION ORDER ACTION DIALOG -->
+    <div class="modal-backdrop" id="modal-order-action">
+        <div class="modal-dialog">
+            <div class="section-header">
+                <div class="section-title">⚡ Quick Action: <span id="modal-order-code" style="color:var(--brand-primary);"></span></div>
+                <button class="btn btn-secondary" onclick="App.closeOrderActionModal()">✕</button>
+            </div>
+            <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 12px;">
+                Select an operational action to execute on this order with closed-loop sync:
+            </p>
+            <div class="modal-options-grid" id="order-action-options">
+                <label class="modal-option-card selected" onclick="App.selectOrderAction('STATUS_CONFIRMED', this)">
+                    <input type="radio" name="order-action-radio" value="STATUS_CONFIRMED" class="modal-option-radio" checked>
+                    <div>
+                        <div style="font-weight:600; font-size:12.5px; color:var(--text-main);">🍳 Mark as Confirmed (In Kitchen)</div>
+                        <div style="font-size:11px; color:var(--text-dim);">Kitchen begins order preparation immediately.</div>
+                    </div>
+                </label>
+                <label class="modal-option-card" onclick="App.selectOrderAction('STATUS_COMPLETED', this)">
+                    <input type="radio" name="order-action-radio" value="STATUS_COMPLETED" class="modal-option-radio">
+                    <div>
+                        <div style="font-weight:600; font-size:12.5px; color:var(--text-main);">✅ Mark as Completed &amp; Delivered</div>
+                        <div style="font-size:11px; color:var(--text-dim);">Finalizes delivery and updates CFO dashboard revenue.</div>
+                    </div>
+                </label>
+                <label class="modal-option-card" onclick="App.selectOrderAction('PAYMENT_PAID', this)">
+                    <input type="radio" name="order-action-radio" value="PAYMENT_PAID" class="modal-option-radio">
+                    <div>
+                        <div style="font-weight:600; font-size:12.5px; color:var(--text-main);">💳 Confirm Payment Received (Cash/UPI)</div>
+                        <div style="font-size:11px; color:var(--text-dim);">Clears pending receivables from CFO dashboard.</div>
+                    </div>
+                </label>
+                <label class="modal-option-card" onclick="App.selectOrderAction('CANCEL_RESTOCK', this)">
+                    <input type="radio" name="order-action-radio" value="CANCEL_RESTOCK" class="modal-option-radio">
+                    <div>
+                        <div style="font-weight:600; font-size:12.5px; color:#ef4444;">🛑 Rule 5 Cancel Order &amp; Auto-Restock</div>
+                        <div style="font-size:11px; color:var(--text-dim);">Applies Rule 5 cancellation policy and restores stock inventory.</div>
+                    </div>
+                </label>
+            </div>
+            <div style="margin-top: 14px; display:flex; justify-content:flex-end; gap:8px;">
+                <button class="btn btn-secondary" onclick="App.closeOrderActionModal()">Close</button>
+                <button class="btn btn-primary" id="btn-submit-order-action" onclick="App.submitOrderAction()">Apply Action</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: EDIT MENU ITEM -->
+    <div class="modal-backdrop" id="modal-edit-menu">
+        <div class="modal-dialog">
+            <div class="section-header">
+                <div class="section-title">Edit Menu Item: <span id="edit-menu-code-title" style="color:var(--brand-primary);"></span></div>
+                <button class="btn btn-secondary" onclick="App.closeEditMenuModal()">✕</button>
+            </div>
+            <form id="form-edit-menu">
+                <input type="hidden" id="edit-menu-id">
+                <div class="form-group">
+                    <label for="edit-menu-code">Item Code *</label>
+                    <input type="text" id="edit-menu-code" required>
+                </div>
+                <div class="form-group">
+                    <label for="edit-menu-name">Food Item Name *</label>
+                    <input type="text" id="edit-menu-name" required>
+                </div>
+                <div class="form-group">
+                    <label for="edit-menu-category">Category</label>
+                    <input type="text" id="edit-menu-category">
+                </div>
+                <div class="form-group">
+                    <label for="edit-menu-price">Price (<span class="dynamic-currency-symbol">₹</span>) *</label>
+                    <input type="number" id="edit-menu-price" step="0.5" required>
+                </div>
+                <div class="form-group">
+                    <label for="edit-menu-qty">Stock Quantity *</label>
+                    <input type="number" id="edit-menu-qty" required>
+                </div>
+                <div class="form-group">
+                    <label for="edit-menu-status">Availability Status</label>
+                    <select id="edit-menu-status">
+                        <option value="AVAILABLE">AVAILABLE</option>
+                        <option value="OUT_OF_STOCK">OUT_OF_STOCK</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="edit-menu-desc">Description</label>
+                    <input type="text" id="edit-menu-desc">
+                </div>
+                <div style="margin-top: 14px; display:flex; justify-content:flex-end; gap:8px;">
+                    <button type="button" class="btn btn-secondary" onclick="App.closeEditMenuModal()">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Update Item</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL: EDIT FAQ -->
+    <div class="modal-backdrop" id="modal-edit-faq">
+        <div class="modal-dialog">
+            <div class="section-header">
+                <div class="section-title">Edit Restaurant FAQ</div>
+                <button class="btn btn-secondary" onclick="App.closeEditFAQModal()">✕</button>
+            </div>
+            <form id="form-edit-faq">
+                <input type="hidden" id="edit-faq-id">
+                <div class="form-group">
+                    <label for="edit-faq-category">Category</label>
+                    <input type="text" id="edit-faq-category">
+                </div>
+                <div class="form-group">
+                    <label for="edit-faq-question">Question *</label>
+                    <input type="text" id="edit-faq-question" required>
+                </div>
+                <div class="form-group">
+                    <label for="edit-faq-answer">Answer *</label>
+                    <textarea id="edit-faq-answer" rows="3" required></textarea>
+                </div>
+                <div style="margin-top: 14px; display:flex; justify-content:flex-end; gap:8px;">
+                    <button type="button" class="btn btn-secondary" onclick="App.closeEditFAQModal()">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Update FAQ</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL: CONFIRMATION DIALOG (HUMAN-IN-THE-LOOP UX) -->
+    <div class="modal-backdrop" id="modal-confirm-dialog">
+        <div class="modal-dialog" style="max-width: 440px;">
+            <div class="section-header">
+                <div class="section-title" id="confirm-dialog-title">⚠️ Confirmation Required</div>
+                <button class="btn btn-secondary" onclick="App.closeConfirmModal()">✕</button>
+            </div>
+            <div id="confirm-dialog-message" style="font-size: 13.5px; color: var(--text-main); margin: 16px 0; line-height: 1.5;">
+                Are you sure you want to proceed with this action?
+            </div>
+            <div style="display:flex; justify-content:flex-end; gap:8px;">
+                <button type="button" class="btn btn-secondary" id="confirm-dialog-cancel-btn" onclick="App.closeConfirmModal()">Cancel</button>
+                <button type="button" class="btn btn-danger" id="confirm-dialog-proceed-btn">Confirm Delete</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- SLIDE IN/OUT NOTIFICATION DRAWER (BOTTOM-RIGHT) -->
+    <div id="notification-drawer" class="notification-drawer" role="alert">
+        <div class="drawer-header">
+            <div class="drawer-title" id="drawer-title">🔔 Operations Alert</div>
+            <button class="toast-close" onclick="App.closeNotificationDrawer()">✕</button>
+        </div>
+        <div class="drawer-body" id="drawer-body">New order received from WhatsApp customer.</div>
+        <div class="drawer-actions" id="drawer-actions">
+            <button class="btn btn-secondary" onclick="App.closeNotificationDrawer()" style="padding: 4px 10px; font-size: 11px;">Dismiss</button>
+            <button class="btn btn-primary" id="drawer-action-btn" style="padding: 4px 12px; font-size: 11px;">View Order</button>
         </div>
     </div>
 

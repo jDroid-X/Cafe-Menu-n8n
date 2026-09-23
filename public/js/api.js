@@ -15,6 +15,7 @@ const IS_STATIC = (() => {
 
 // ============================================================
 // DEMO AI: built-in rule-based reply engine for static mode
+// Aligned with Images 1 & 2 (Rules 1 to 6)
 // ============================================================
 const DemoAI = {
     session: [], // simple in-memory history
@@ -26,50 +27,57 @@ const DemoAI = {
         { name: 'Butter Pav Bhaji', price: 120, category: 'Main Course', status: 'AVAILABLE' },
         { name: 'Cutting Chai', price: 15, category: 'Beverages', status: 'AVAILABLE' },
         { name: 'Mango Lassi', price: 50, category: 'Beverages', status: 'OUT_OF_STOCK' },
-        { name: 'Paneer Tikka Pav', price: 90, category: 'Snacks', status: 'AVAILABLE' }
+        { name: 'Paneer Tikka Pav', price: 90, category: 'Snacks', status: 'OUT_OF_STOCK' }
     ],
 
     reply(text) {
-        const t = text.toLowerCase();
+        const t = text.trim().toLowerCase();
         this.session.push({ role: 'user', content: text });
         let reply = '';
 
-        if (/\bhello\b|\bhi\b|\bnamaste\b|\bhey\b/.test(t)) {
-            reply = '🙏 Namaste! Welcome to *jDroid-X- CafeMenu* — your WhatsApp ordering assistant! 🍽️\nHow can I help you today?\n\n👉 Try: "Show menu", "Order Vada Pav", or "What\'s available?"';
-        } else if (/\bmenu\b|\bitems\b|\bwhat.*have\b|\blist\b/.test(t)) {
-            const available = this._menu.filter(i => i.status === 'AVAILABLE');
-            reply = '*🍽️ Our Menu Today:*\n\n' + available.map(i =>
-                `• *${i.name}* — ₹${i.price} (${i.category})`
-            ).join('\n');
-            reply += '\n\n📌 To order, just say *"Order [item name]"*';
-        } else if (/\border\b/.test(t)) {
-            const found = this._menu.find(i =>
-                t.includes(i.name.toLowerCase()) && i.status === 'AVAILABLE'
-            );
-            if (found) {
-                reply = `✅ Great choice! *${found.name}* at ₹${found.price} has been noted!\n\n📦 Your order is being processed.\n\nWould you like anything else? 😊`;
+        // RULE 5: Cancel Order Polite Refusal
+        if (/cancel|cancellation|stop\s+order/i.test(t)) {
+            reply = 'Sorry 🙏 I cannot cancel orders directly.\nPlease call the restaurant owner first and inform them.\nOwner Contact: +95 1224567890';
+        }
+        // RULE 1: First Message Greeting
+        else if (/^(hi|hello|hey|namaste|good\s(morning|afternoon|evening)|start|yo)\b/i.test(t) && t.split(/\s+/).length <= 4) {
+            reply = 'Welcome to *jDroid-X- CafeMenu* 🍽️\nHow can I help you today?\n- 🛒 *Place an order*\n- ℹ️ *FAQ / Information*\n- 📦 *Check order / stock*';
+        }
+        // RULE 4: Check Order Status
+        else if (/check\s+order|order\s+status|ord-\d+/i.test(t)) {
+            reply = 'Order *ORD-882101* is Delivered ✅\nItem: Misal Pav (Qty: 2) | Total: ₹140.00';
+        }
+        // RULE 4: Check Stock
+        else if (/check\s+stock|how\s+much\s+stock/i.test(t)) {
+            const found = this._menu.find(i => t.includes(i.name.toLowerCase()));
+            if (found && found.status === 'AVAILABLE') {
+                reply = `*${found.name}* is available at *₹${found.price}* ✅`;
+            } else if (found && found.status === 'OUT_OF_STOCK') {
+                reply = `*${found.name}* is currently out of stock ❌`;
             } else {
-                reply = '✅ Order received! Our team will confirm shortly.\n\nPlease share the *exact item name* from the menu for a faster response.';
+                reply = 'All regular items are available in stock ✅';
             }
-        } else if (/\bprice\b|\bcost\b|\bhow much\b/.test(t)) {
-            reply = '*💰 Price List:*\n' + this._menu.map(i =>
-                `• ${i.name}: ₹${i.price}`
-            ).join('\n');
-        } else if (/\bstock\b|\bavailable\b|\btoday\b/.test(t)) {
-            const out = this._menu.filter(i => i.status === 'OUT_OF_STOCK');
-            if (out.length) {
-                reply = `⚠️ Currently *out of stock*:\n${out.map(i => `• ${i.name}`).join('\n')}\n\nAll other items are available! 🟢`;
-            } else {
-                reply = '✅ All items are currently in stock! Choose anything from the menu.';
-            }
-        } else if (/\bhours\b|\bopen\b|\btiming\b/.test(t)) {
-            reply = '🕐 *Opening Hours:* 09:00 AM – 11:00 PM, 7 days a week!';
-        } else if (/\bfaq\b|\bhelp\b|\bquestion\b/.test(t)) {
-            reply = '❓ *Common Questions:*\n• Delivery available within 3 km\n• Min order: ₹0\n• Payment: Cash / UPI\n• Contact: +91 (see header)';
-        } else if (/\bthank\b|\bthanks\b|\bshukriya\b/.test(t)) {
-            reply = '🙏 You\'re most welcome! Enjoy your meal! 🍽️';
+        }
+        // RULE 2: Out of stock check
+        else if (/paneer\s+tikka|mango\s+lassi/i.test(t)) {
+            reply = 'Sorry, *Paneer Tikka Pav* is out of stock ❌\nAvailable options: Vada Pav (₹30), Misal Pav (₹70), Butter Pav Bhaji (₹120)';
+        }
+        // RULE 2: Missing Quantity
+        else if (/i\s+want\s+([a-z\s]+)/i.test(t) && !/\b(one|two|three|four|five|\d+)\b/i.test(t)) {
+            reply = 'How many would you like to order? Please provide the quantity and your delivery address.';
+        }
+        // RULE 2: Complete Order
+        else if (/\b(order|want|give|send)\b/i.test(t) || /\b(two|three|one|\d+)\s+(vada|misal|pav)/i.test(t)) {
+            reply = 'Your order is confirmed ✅\nWe have received your order and our team is preparing it now. Thank you for ordering with *jDroid-X- CafeMenu*! 🍽️';
+        }
+        // FAQ
+        else if (/opening\s+hours|timing|hours|open/i.test(t)) {
+            reply = 'Our opening hours are 09:00 AM to 11:00 PM, 7 days a week! 🕐';
+        } else if (/menu|what.*available|list/i.test(t)) {
+            const avail = this._menu.filter(i => i.status === 'AVAILABLE');
+            reply = '*🍽️ Today\'s Menu:*\n' + avail.map(i => `• *${i.name}* — ₹${i.price} (${i.category})`).join('\n') + '\n\nTo order, say: "Two Vada Pav"';
         } else {
-            reply = '🤖 *[DEMO MODE – GitHub Pages]*\nI can help you with:\n• 📋 Menu & prices\n• 🛒 Placing orders\n• ⏰ Opening hours\n• 📦 Stock availability\n\nType any of these to get started!';
+            reply = 'Welcome to *jDroid-X- CafeMenu* 🍽️\nHow can I help you?\n- 🛒 *Place an order*\n- ℹ️ *FAQ / Information*\n- 📦 *Check order / stock*';
         }
 
         this.session.push({ role: 'assistant', content: reply });
@@ -179,6 +187,14 @@ const API = {
             throw err;
         }
     },
+
+    // 0. Authentication
+    login: (username, password) => IS_STATIC 
+        ? Promise.resolve({ success: true, token: 'demo_token_' + Date.now(), user: { username, role: 'admin' } })
+        : API.request('/api/auth/login', { method: 'POST', body: JSON.stringify({ username, password }) }),
+    register: (username, email, password, role) => IS_STATIC
+        ? Promise.resolve({ success: true, message: 'Registered (demo)' })
+        : API.request('/api/auth/register', { method: 'POST', body: JSON.stringify({ username, email, password, role }) }),
 
     // 1. Health
     getHealth: () => IS_STATIC ? Promise.resolve(StaticMock.health()) : API.request('/api/health'),

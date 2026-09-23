@@ -291,7 +291,11 @@ class DatabaseSeeder {
             }
         }
 
-        // 9. Seed Audit Log Entry
+        // 9. Seed Default Users (Admin, CFO, Manager)
+        const SecurityService = require('../services/SecurityService');
+        SecurityService.getInstance().seedDefaultUsers(db);
+
+        // 10. Seed Audit Log Entry
         db.run(`
             INSERT INTO audit_log (component, severity, event_name, details_json)
             VALUES ('SYSTEM', 'INFO', 'DB_SEEDED_JDROID_X', ?)

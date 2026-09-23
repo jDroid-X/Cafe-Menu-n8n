@@ -1105,3 +1105,440 @@ tr:hover td {
     font-weight: 600;
 }
 
+/* TOAST NOTIFICATIONS (HUMAN-IN-THE-LOOP UX) */
+.toast-container {
+    position: fixed;
+    top: 24px;
+    right: 24px;
+    z-index: 99999;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    pointer-events: none;
+}
+
+.toast {
+    pointer-events: auto;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 300px;
+    max-width: 440px;
+    padding: 12px 18px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 500;
+    line-height: 1.4;
+    color: #fff;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    animation: toastSlideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.toast.toast-success {
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.95), rgba(5, 150, 105, 0.95));
+    border-color: rgba(52, 211, 153, 0.4);
+}
+
+.toast.toast-error {
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.95), rgba(220, 38, 38, 0.95));
+    border-color: rgba(248, 113, 113, 0.4);
+}
+
+.toast.toast-info {
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.95), rgba(37, 99, 235, 0.95));
+    border-color: rgba(96, 165, 250, 0.4);
+}
+
+.toast.toast-warning {
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.95), rgba(217, 119, 6, 0.95));
+    border-color: rgba(251, 191, 36, 0.4);
+}
+
+.toast-icon {
+    font-size: 16px;
+    flex-shrink: 0;
+}
+
+.toast-message {
+    flex: 1;
+}
+
+.toast-close {
+    background: transparent;
+    border: none;
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 16px;
+    cursor: pointer;
+    padding: 0 4px;
+    line-height: 1;
+}
+
+.toast-close:hover {
+    color: #fff;
+}
+
+@keyframes toastSlideIn {
+    from {
+        opacity: 0;
+        transform: translateX(40px) scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0) scale(1);
+    }
+}
+
+/* ==========================================================
+   INTERACTIVE UI/UX COMPONENT SUITE
+   - Switch (on/off)
+   - Segmented Toggle (left/right)
+   - 3D Card Flipper
+   - Rich List Box & Dropdowns
+   - Multi-Option Dialog Box
+   - Slide In/Out Notification Drawer (Bottom-Right)
+   - Dynamic Form Validations
+   ========================================================== */
+
+/* 1. SWITCH (ON / OFF) COMPONENT */
+.switch-ui {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    width: 44px;
+    height: 24px;
+    cursor: pointer;
+    vertical-align: middle;
+}
+
+.switch-ui input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.switch-slider {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(255, 255, 255, 0.15);
+    border: 1px solid var(--border-color);
+    border-radius: 24px;
+    transition: background-color 0.25s ease, border-color 0.25s ease;
+}
+
+.switch-slider::before {
+    position: absolute;
+    content: "";
+    height: 18px;
+    width: 18px;
+    left: 2px;
+    bottom: 2px;
+    background-color: #ffffff;
+    border-radius: 50%;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+    transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.switch-ui input:checked + .switch-slider {
+    background-color: var(--brand-primary);
+    border-color: var(--brand-primary);
+}
+
+.switch-ui input:checked + .switch-slider::before {
+    transform: translateX(20px);
+}
+
+.switch-ui input:focus-visible + .switch-slider {
+    box-shadow: 0 0 0 2px var(--border-focus);
+}
+
+/* 2. SEGMENTED TOGGLE (LEFT / RIGHT) */
+.segmented-toggle {
+    display: inline-flex;
+    background: var(--bg-input);
+    border: 1px solid var(--border-color);
+    border-radius: 20px;
+    padding: 3px;
+    gap: 2px;
+    user-select: none;
+}
+
+.segmented-btn {
+    border: none;
+    background: transparent;
+    color: var(--text-muted);
+    font-size: 11.5px;
+    font-weight: 600;
+    padding: 5px 12px;
+    border-radius: 16px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    transition: all 0.2s ease;
+}
+
+.segmented-btn:hover {
+    color: var(--text-main);
+}
+
+.segmented-btn.active {
+    background: var(--brand-primary);
+    color: #ffffff;
+    box-shadow: var(--shadow-sm);
+}
+
+/* 3. 3D CARD FLIPPER FOR MENU ITEMS */
+.flipper-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 16px;
+    margin-top: 14px;
+}
+
+.flipper-container {
+    perspective: 1000px;
+    height: 290px;
+    width: 100%;
+}
+
+.flipper-card {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    transform-style: preserve-3d;
+    transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+    border-radius: var(--radius-md);
+}
+
+.flipper-card.is-flipped {
+    transform: rotateY(180deg);
+}
+
+.flipper-face {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+    border-radius: var(--radius-md);
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    border: 1px solid var(--border-color);
+    box-shadow: var(--shadow-sm);
+    backdrop-filter: blur(12px);
+    overflow: hidden;
+}
+
+.flipper-front {
+    background: var(--bg-card);
+}
+
+.flipper-front:hover {
+    border-color: rgba(255, 87, 34, 0.35);
+    box-shadow: var(--shadow-glow);
+}
+
+.flipper-back {
+    background: linear-gradient(145deg, rgba(20, 27, 45, 0.98), rgba(15, 23, 42, 0.98));
+    transform: rotateY(180deg);
+    border-color: rgba(255, 87, 34, 0.4);
+}
+
+.flipper-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+}
+
+.flipper-code {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    padding: 2px 7px;
+    background: rgba(255, 255, 255, 0.06);
+    border-radius: 4px;
+    color: var(--text-dim);
+}
+
+.flipper-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--text-main);
+    margin-top: 6px;
+}
+
+.flipper-category {
+    font-size: 11.5px;
+    color: var(--brand-secondary);
+    font-weight: 500;
+}
+
+.flipper-price {
+    font-size: 18px;
+    font-weight: 800;
+    color: var(--brand-primary);
+    margin: 8px 0;
+}
+
+.flipper-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-top: 1px solid var(--border-color);
+    padding-top: 10px;
+    margin-top: 6px;
+}
+
+.btn-flip {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--border-color);
+    color: var(--text-muted);
+    font-size: 11px;
+    padding: 4px 10px;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn-flip:hover {
+    color: var(--text-main);
+    background: rgba(255, 255, 255, 0.1);
+    border-color: var(--brand-primary);
+}
+
+/* 4. RICH LIST BOX & DROPDOWN */
+.rich-listbox-container {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.rich-select {
+    background: var(--bg-input);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    color: var(--text-main);
+    padding: 6px 12px;
+    font-size: 12px;
+    outline: none;
+    cursor: pointer;
+}
+
+.rich-select:focus {
+    border-color: var(--border-focus);
+}
+
+/* 5. MULTI-OPTION DIALOG BOX */
+.modal-options-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin: 14px 0;
+}
+
+.modal-option-card {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    padding: 10px 14px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.modal-option-card:hover {
+    background: rgba(255, 255, 255, 0.06);
+    border-color: rgba(255, 87, 34, 0.3);
+}
+
+.modal-option-card.selected {
+    background: rgba(255, 87, 34, 0.1);
+    border-color: var(--brand-primary);
+}
+
+.modal-option-radio {
+    accent-color: var(--brand-primary);
+    cursor: pointer;
+}
+
+/* 6. SLIDE IN/OUT NOTIFICATION DRAWER (BOTTOM-RIGHT) */
+.notification-drawer {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    width: 360px;
+    max-width: calc(100vw - 32px);
+    background: var(--bg-card);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    box-shadow: 0 12px 36px rgba(0, 0, 0, 0.5);
+    z-index: 9999;
+    padding: 14px 16px;
+    transform: translateX(130%);
+    opacity: 0;
+    transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease;
+}
+
+.notification-drawer.active {
+    transform: translateX(0);
+    opacity: 1;
+}
+
+.drawer-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 6px;
+}
+
+.drawer-title {
+    font-size: 13.5px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.drawer-body {
+    font-size: 12px;
+    color: var(--text-muted);
+    line-height: 1.45;
+    margin-bottom: 12px;
+}
+
+.drawer-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+}
+
+/* 7. DYNAMIC VALIDATIONS & FEEDBACK */
+.field-error-msg {
+    font-size: 11px;
+    color: #ef4444;
+    margin-top: 3px;
+    display: none;
+}
+
+.input-invalid {
+    border-color: #ef4444 !important;
+    background-color: rgba(239, 68, 68, 0.05) !important;
+}
+
+.input-invalid + .field-error-msg {
+    display: block;
+}
+
+
+

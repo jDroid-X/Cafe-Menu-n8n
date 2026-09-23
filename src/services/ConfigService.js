@@ -14,6 +14,7 @@ class ConfigService extends EventEmitter {
     this._config = this._load();
     this._applyEnvOverrides();
     ConfigService.instance = this;
+  }
 
   /** Apply environment variable overrides to the loaded config */
   _applyEnvOverrides() {
@@ -36,7 +37,6 @@ class ConfigService extends EventEmitter {
         target[pathArr[pathArr.length - 1]] = envVal;
       }
     }
-  }
   }
 
   static getInstance() {

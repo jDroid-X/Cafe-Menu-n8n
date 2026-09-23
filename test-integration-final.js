@@ -2,13 +2,13 @@ const http = require('http');
 
 console.log('=== Testing WhatsApp → n8n Integration ===\n');
 
-// Test 1: Check if n8n is running
-console.log('1. Checking if n8n is running on port 5678...');
-http.get('http://localhost:5678/', (res) => {
+// Test 1: Check if backend/n8n is running
+console.log('1. Checking if server is running on port 3585...');
+http.get('http://localhost:3585/api/health', (res) => {
     let d = '';
     res.on('data', c => d += c);
     res.on('end', () => {
-        console.log('   Status:', res.statusCode, '- n8n is', res.statusCode === 200 ? 'RUNNING' : 'NOT RUNNING');
+        console.log('   Status:', res.statusCode, '- Server is', res.statusCode === 200 ? 'RUNNING' : 'NOT RUNNING');
         
         // Test 2: Try executing the workflow via API
         console.log('\n2. Testing workflow execution via API...');
@@ -23,7 +23,7 @@ http.get('http://localhost:5678/', (res) => {
             }]
         });
         
-        const req = http.request('http://localhost:5678/api/v1/executions', {
+        const startReq = http.request('http://localhost:3585/api/runtime/n8n/start', {
             method: 'POST',
             headers: { 
                 'Content-Type': 'application/json',
@@ -48,8 +48,8 @@ http.get('http://localhost:5678/', (res) => {
                 }).on('error', e => console.log('   Simulator error:', e.message));
             });
         });
-        req.on('error', e => console.log('   Execution API error:', e.message));
-        req.write(body);
-        req.end();
+        startReq.on('error', e => console.log('   Execution API error:', e.message));
+        startReq.write(body);
+        startReq.end();
     });
 }).on('error', e => console.log('   Connection error:', e.message));

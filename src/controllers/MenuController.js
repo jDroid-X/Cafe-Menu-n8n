@@ -65,8 +65,22 @@ class MenuController {
 
     create(req, res) {
         try {
-            if (!req.body.item_code || !req.body.item_name || req.body.price === undefined) {
+            const { item_code, item_name, price, quantity, status } = req.body || {};
+            if (!item_code || !item_name || price === undefined) {
                 return res.status(400).json({ success: false, error: 'item_code, item_name and price are required' });
+            }
+            const numPrice = parseFloat(price);
+            if (isNaN(numPrice) || numPrice <= 0) {
+                return res.status(400).json({ success: false, error: 'Price must be a positive number greater than 0' });
+            }
+            if (quantity !== undefined) {
+                const numQty = parseInt(quantity, 10);
+                if (isNaN(numQty) || numQty < 0) {
+                    return res.status(400).json({ success: false, error: 'Quantity must be zero or a positive integer' });
+                }
+            }
+            if (status && !['AVAILABLE', 'OUT_OF_STOCK'].includes(status)) {
+                return res.status(400).json({ success: false, error: 'Status must be AVAILABLE or OUT_OF_STOCK' });
             }
             const item = this.model.create(req.body);
             res.status(201).json({ success: true, data: item, message: 'Menu item created successfully' });
@@ -77,6 +91,22 @@ class MenuController {
 
     update(req, res) {
         try {
+            const { price, quantity, status } = req.body || {};
+            if (price !== undefined) {
+                const numPrice = parseFloat(price);
+                if (isNaN(numPrice) || numPrice <= 0) {
+                    return res.status(400).json({ success: false, error: 'Price must be a positive number greater than 0' });
+                }
+            }
+            if (quantity !== undefined) {
+                const numQty = parseInt(quantity, 10);
+                if (isNaN(numQty) || numQty < 0) {
+                    return res.status(400).json({ success: false, error: 'Quantity must be zero or a positive integer' });
+                }
+            }
+            if (status && !['AVAILABLE', 'OUT_OF_STOCK'].includes(status)) {
+                return res.status(400).json({ success: false, error: 'Status must be AVAILABLE or OUT_OF_STOCK' });
+            }
             const item = this.model.update(req.params.id, req.body);
             res.json({ success: true, data: item, message: 'Menu item updated successfully' });
         } catch (err) {

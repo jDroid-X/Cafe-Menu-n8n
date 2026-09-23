@@ -4,7 +4,8 @@
 
 const fs = require('node:fs');
 const path = require('node:path');
-const fetch = require('node-fetch'); // Used for optional GitHub push
+// Use native globalThis.fetch available in Node 18+ without external dependencies
+const fetch = globalThis.fetch || ((...args) => import('node-fetch').then(({ default: f }) => f(...args)));
 
 class N8nWorkflowService {
   constructor() {

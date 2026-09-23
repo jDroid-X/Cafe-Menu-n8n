@@ -1,6 +1,8 @@
 node_modules/
 data/*.db
 data/*.db-journal
+data/*.db-shm
+data/*.db-wal
 .n8n_demo_runtime/
 .playwright-mcp/
 *.log

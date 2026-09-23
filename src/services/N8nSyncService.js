@@ -497,7 +497,14 @@ class N8nSyncService {
                     } else {
                         n.parameters.sheetName = { __rl: true, value: inventorySheet, mode: 'name' };
                     }
-                } else if (n.name === 'FAQ' && n.type === 'n8n-nodes-base.googleSheetsTool') {
+                    if (data.inventory_range) {
+                        n.parameters.options = n.parameters.options || {};
+                        n.parameters.options.range = data.inventory_range;
+                    }
+                    if (data.inventory_operation) {
+                        n.parameters.operation = data.inventory_operation;
+                    }
+                } else if ((n.name === 'FAQ' || n.name === 'Get FAQ') && n.type === 'n8n-nodes-base.googleSheetsTool') {
                     n.parameters = n.parameters || {};
                     if (!n.credentials) n.credentials = {};
                     n.credentials.googleSheetsOAuth2Api = n.credentials.googleSheetsOAuth2Api || { id: '93xN3gnk32S67PtE', name: 'Google Sheets account' };
@@ -505,6 +512,13 @@ class N8nSyncService {
                         // Keep existing sheet reference
                     } else {
                         n.parameters.sheetName = { __rl: true, value: faqSheet, mode: 'name' };
+                    }
+                    if (data.faq_range) {
+                        n.parameters.options = n.parameters.options || {};
+                        n.parameters.options.range = data.faq_range;
+                    }
+                    if (data.faq_operation) {
+                        n.parameters.operation = data.faq_operation;
                     }
                 } else if (n.name === 'Post Orders' && n.type === 'n8n-nodes-base.googleSheetsTool') {
                     n.parameters = n.parameters || {};
@@ -516,6 +530,9 @@ class N8nSyncService {
                         n.parameters.sheetName = { __rl: true, value: ordersSheet, mode: 'name' };
                     }
                     n.parameters.columns = { mappingMode: ordersMappingMode, value: null };
+                    if (data.orders_operation) {
+                        n.parameters.operation = data.orders_operation;
+                    }
                 }
             });
 
