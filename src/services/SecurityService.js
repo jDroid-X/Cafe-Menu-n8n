@@ -121,23 +121,24 @@ class SecurityService {
      */
     seedDefaultUsers(db) {
         try {
-            const count = db.queryOne('SELECT COUNT(*) as c FROM users')?.c || 0;
-            if (count === 0) {
-                const defaultUsers = [
-                    { username: 'admin@jdroidx.ai', email: 'admin@jdroidx.ai', password: 'admin123', role: 'admin' },
-                    { username: 'cfo@jdroidx.ai', email: 'cfo@jdroidx.ai', password: 'cfo123', role: 'admin' },
-                    { username: 'manager@jdroidx.ai', email: 'manager@jdroidx.ai', password: 'mgr123', role: 'user' }
-                ];
+            const defaultUsers = [
+                { username: 'demo@jdroidx.ai', email: 'demo@jdroidx.ai', password: 'demo123', role: 'admin' },
+                { username: 'admin@jdroidx.ai', email: 'admin@jdroidx.ai', password: 'admin123', role: 'admin' },
+                { username: 'cfo@jdroidx.ai', email: 'cfo@jdroidx.ai', password: 'cfo123', role: 'admin' },
+                { username: 'manager@jdroidx.ai', email: 'manager@jdroidx.ai', password: 'mgr123', role: 'user' }
+            ];
 
-                for (const u of defaultUsers) {
+            for (const u of defaultUsers) {
+                const existing = db.queryOne('SELECT id FROM users WHERE email = ? OR username = ?', [u.email, u.username]);
+                if (!existing) {
                     const hashed = this.hashPassword(u.password);
                     db.run(
                         'INSERT INTO users (username, email, password_hash, role) VALUES (?, ?, ?, ?)',
                         [u.username, u.email, hashed, u.role]
                     );
                 }
-                console.log('[SecurityService] 🔐 Seeded default users (admin, cfo, manager)');
             }
+            console.log('[SecurityService] 🔐 Verified default users (demo, admin, cfo, manager)');
         } catch (err) {
             console.warn('[SecurityService] Default user seeding warning:', err.message);
         }

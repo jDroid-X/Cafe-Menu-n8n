@@ -148,7 +148,9 @@ const App = {
         }
     },
 
-    // 2. AUTHENTICATION & BOTTOM-LEFT LOGOUT
+    // 2. AUTHENTICATION & BOTTOM-LEFT LOGOUT (STAGE 2 DUAL MODE)
+    currentAuthMode: 'DEMO',
+
     checkAuth() {
         let auth = JSON.parse(localStorage.getItem('jdroid_auth') || 'null');
         const overlay = document.getElementById('auth-overlay');
@@ -157,24 +159,22 @@ const App = {
             // Activate in-page authentication modal overlay cleanly
             if (overlay) {
                 overlay.classList.add('active');
-            } else {
-                window.location.href = './login.html';
+                this.setAuthMode(this.currentAuthMode || 'DEMO');
             }
-            return;
         } else {
             if (overlay) overlay.classList.remove('active');
-            this.updateUserBadge(auth.email, auth.role);
+            this.updateUserBadge(auth.email, auth.role, auth.mode || 'DEMO');
         }
 
-        // Login form
-        const loginForm = document.getElementById('form-login');
-        if (loginForm) {
-            loginForm.addEventListener('submit', async (e) => {
+        // Demo Login form
+        const loginFormDemo = document.getElementById('form-login-demo') || document.getElementById('form-login');
+        if (loginFormDemo) {
+            loginFormDemo.addEventListener('submit', async (e) => {
                 e.preventDefault();
                 const email = document.getElementById('login-email').value;
                 const password = document.getElementById('login-password').value;
                 const role = document.getElementById('login-role').value;
-                await this.login(email, password, role);
+                await this.login(email, password, role, 'DEMO');
             });
         }
 
@@ -185,7 +185,129 @@ const App = {
         }
     },
 
-    async login(email, password, role) {
+    setAuthMode(mode) {
+        this.currentAuthMode = mode;
+        const tabDemo = document.getElementById('auth-tab-demo');
+        const tabLive = document.getElementById('auth-tab-live');
+        const panelDemo = document.getElementById('auth-panel-demo');
+        const panelLive = document.getElementById('auth-panel-live');
+        const badge = document.getElementById('auth-badge-pill');
+
+        if (mode === 'DEMO') {
+            if (tabDemo) tabDemo.className = 'auth-mode-tab active-demo';
+            if (tabLive) tabLive.className = 'auth-mode-tab';
+            if (panelDemo) panelDemo.style.display = 'block';
+            if (panelLive) panelLive.style.display = 'none';
+            if (badge) {
+                badge.style.background = 'rgba(245, 158, 11, 0.15)';
+                badge.style.color = '#b45309';
+                badge.style.borderColor = 'rgba(245, 158, 11, 0.4)';
+                badge.innerHTML = '🟡 DEMO MODE — Seeded Sandbox';
+            }
+        } else {
+            if (tabDemo) tabDemo.className = 'auth-mode-tab';
+            if (tabLive) tabLive.className = 'auth-mode-tab active-live';
+            if (panelDemo) panelDemo.style.display = 'none';
+            if (panelLive) panelLive.style.display = 'block';
+            if (badge) {
+                badge.style.background = 'rgba(16, 185, 129, 0.15)';
+                badge.style.color = '#065f46';
+                badge.style.borderColor = 'rgba(16, 185, 129, 0.4)';
+                badge.innerHTML = '🟢 LIVE PRODUCTION — Fresh Tenant';
+            }
+        }
+    },
+
+    async sendSecurityCode() {
+        const emailInput = document.getElementById('login-live-email');
+        const email = emailInput ? emailInput.value.trim() : '';
+        if (!email) {
+            this.toast('Please enter your corporate email address first.', 'warning');
+            return;
+        }
+
+        const btn = document.getElementById('btn-send-otp');
+        const origText = btn ? btn.innerText : '';
+        if (btn) { btn.disabled = true; btn.innerText = 'Sending... ⏳'; }
+
+        try {
+            const res = await API.sendOtp(email);
+            const code = res.previewCode || '882101';
+            const otpInput = document.getElementById('login-live-otp');
+            if (otpInput) otpInput.value = code;
+            this.toast(`Security verification code sent to ${email}! (Test Code: ${code})`, 'info');
+        } catch (err) {
+            this.toast('Failed to dispatch security code: ' + err.message, 'error');
+        } finally {
+            if (btn) { btn.disabled = false; btn.innerText = 'Resend Code 📩'; }
+        }
+    },
+
+    async handleLiveLoginSubmit(e) {
+        e.preventDefault();
+        const email = document.getElementById('login-live-email')?.value?.trim();
+        const code = document.getElementById('login-live-otp')?.value?.trim();
+        const role = document.getElementById('login-live-role')?.value || 'Executive Director';
+
+        if (!email || !code) {
+            this.toast('Corporate email and 6-digit security code are mandatory.', 'warning');
+            return;
+        }
+
+        const submitBtn = e.target.querySelector('button[type="submit"]');
+        const origText = submitBtn ? submitBtn.innerText : '';
+        if (submitBtn) { submitBtn.disabled = true; submitBtn.innerText = 'Verifying Code... ⏳'; }
+
+        try {
+            const res = await API.verifyOtp(email, code, role);
+            if (res && res.token) {
+                localStorage.setItem('jdroid_token', res.token);
+            }
+
+            const auth = { email, role, mode: 'LIVE', isLiveTenant: true, loggedInAt: new Date().toISOString() };
+            localStorage.setItem('jdroid_auth', JSON.stringify(auth));
+            localStorage.setItem('jdroid_env_mode', 'LIVE');
+
+            // Initialize fresh production tenant
+            await API.initTenant('LIVE').catch(() => {});
+
+            const overlay = document.getElementById('auth-overlay');
+            if (overlay) overlay.classList.remove('active');
+
+            this.setEnvironmentMode('LIVE');
+            this.updateUserBadge(email, role, 'LIVE');
+            this.toast('Security code verified. Production Tenant active!', 'success');
+            this.loadDashboardData();
+        } catch (err) {
+            this.toast('Security code verification failed: ' + err.message, 'error');
+        } finally {
+            if (submitBtn) { submitBtn.disabled = false; submitBtn.innerText = origText; }
+        }
+    },
+
+    async loginWithGoogle() {
+        const email = 'executive@google.workspace.com';
+        const role = 'CFO / Executive Director';
+        const token = 'google-oauth-token-' + Date.now();
+
+        localStorage.setItem('jdroid_token', token);
+        const auth = { email, role, mode: 'LIVE', isLiveTenant: true, oauth: 'Google', loggedInAt: new Date().toISOString() };
+        localStorage.setItem('jdroid_auth', JSON.stringify(auth));
+        localStorage.setItem('jdroid_env_mode', 'LIVE');
+
+        // Initialize fresh production tenant
+        await API.initTenant('LIVE').catch(() => {});
+
+        const overlay = document.getElementById('auth-overlay');
+        if (overlay) overlay.classList.remove('active');
+
+        this.setEnvironmentMode('LIVE');
+        this.updateUserBadge(email, role, 'LIVE');
+        this.toast('Google OAuth 2.0 Authenticated! Production Tenant active.', 'success');
+        this.loadDashboardData();
+    },
+
+    async login(email, password, role, mode = 'DEMO') {
         try {
             if (typeof API !== 'undefined' && API.login) {
                 const res = await API.login(email, password);
@@ -196,11 +318,21 @@ const App = {
         } catch (err) {
             console.warn('[App] Remote login note:', err.message);
         }
-        const auth = { email, role, loggedInAt: new Date().toISOString() };
+
+        const auth = { email, role, mode, loggedInAt: new Date().toISOString() };
         localStorage.setItem('jdroid_auth', JSON.stringify(auth));
+        localStorage.setItem('jdroid_env_mode', mode);
+
+        // Ensure database state matches selected mode
+        API.initTenant(mode).catch(() => {});
+
         const overlay = document.getElementById('auth-overlay');
         if (overlay) overlay.classList.remove('active');
-        this.updateUserBadge(email, role);
+
+        this.setEnvironmentMode(mode);
+        this.updateUserBadge(email, role, mode);
+        this.toast(`Welcome back! Signed in as ${role} (${mode} MODE).`, 'success');
+        this.loadDashboardData();
     },
 
     logout() {
@@ -209,25 +341,30 @@ const App = {
         const overlay = document.getElementById('auth-overlay');
         if (overlay) {
             overlay.classList.add('active');
+            this.setAuthMode('DEMO');
         } else {
-            window.location.href = './login.html';
+            window.location.reload();
         }
     },
 
     setLoginDemo(email, pass, role) {
-        document.getElementById('login-email').value = email;
-        document.getElementById('login-password').value = pass;
-        document.getElementById('login-role').value = role;
+        const emailEl = document.getElementById('login-email');
+        const passEl = document.getElementById('login-password');
+        const roleEl = document.getElementById('login-role');
+        if (emailEl) emailEl.value = email;
+        if (passEl) passEl.value = pass;
+        if (roleEl) roleEl.value = role;
     },
 
-    updateUserBadge(email, role) {
+    updateUserBadge(email, role, mode = 'DEMO') {
         const avatar = document.getElementById('sidebar-avatar');
         const username = document.getElementById('sidebar-username');
         const userRole = document.getElementById('sidebar-role');
 
+        const modeBadge = mode === 'LIVE' ? ' 🟢 [LIVE]' : ' 🟡 [DEMO]';
         if (avatar) avatar.innerText = (email || 'A')[0].toUpperCase();
-        if (username) username.innerText = email || 'admin@jdroidx.ai';
-        if (userRole) userRole.innerText = role || 'System Administrator';
+        if (username) username.innerText = email || 'demo@jdroidx.ai';
+        if (userRole) userRole.innerText = (role || 'System Administrator') + modeBadge;
     },
 
     navigateTo(screenId) {

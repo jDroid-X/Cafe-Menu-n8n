@@ -40,6 +40,9 @@ const runtime = new RuntimeController();
 // ----------------------------------------------------------
 router.post('/auth/login', (req, res) => auth.login(req, res));
 router.post('/auth/register', (req, res) => auth.register(req, res));
+router.post('/auth/otp/send', (req, res) => auth.sendOtp(req, res));
+router.post('/auth/otp/verify', (req, res) => auth.verifyOtp(req, res));
+router.post('/auth/tenant/init', (req, res) => auth.initTenant(req, res));
 
 // ----------------------------------------------------------
 // 2. JWT & SESSION GUARD MIDDLEWARE

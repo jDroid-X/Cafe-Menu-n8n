@@ -201,6 +201,15 @@ const API = {
     register: (username, email, password, role) => IS_STATIC
         ? Promise.resolve({ success: true, message: 'Registered (demo)' })
         : API.request('/api/auth/register', { method: 'POST', body: JSON.stringify({ username, email, password, role }) }),
+    sendOtp: (email) => IS_STATIC
+        ? Promise.resolve({ success: true, message: `Security verification code sent to ${email}`, previewCode: '882101' })
+        : API.request('/api/auth/otp/send', { method: 'POST', body: JSON.stringify({ email }) }),
+    verifyOtp: (email, code, role = 'Executive Director') => IS_STATIC
+        ? Promise.resolve({ success: true, token: 'demo-live-token-' + Date.now(), user: { username: email, email, role, isLiveTenant: true } })
+        : API.request('/api/auth/otp/verify', { method: 'POST', body: JSON.stringify({ email, code, role }) }),
+    initTenant: (mode) => IS_STATIC
+        ? Promise.resolve({ success: true, mode, message: mode === 'LIVE' ? 'Fresh Production Tenant initialized' : 'Demo Sandbox restored' })
+        : API.request('/api/auth/tenant/init', { method: 'POST', body: JSON.stringify({ mode }) }),
 
     // 1. Health
     getHealth: () => IS_STATIC ? Promise.resolve(StaticMock.health()) : API.request('/api/health'),

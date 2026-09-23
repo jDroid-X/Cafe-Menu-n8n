@@ -799,6 +799,45 @@ tr:hover td {
     box-shadow: 0 0 16px rgba(16, 185, 129, 0.4);
 }
 
+.auth-mode-selector {
+    display: flex;
+    gap: 6px;
+    margin: 14px 0 16px 0;
+    background: rgba(255, 255, 255, 0.05);
+    padding: 4px;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border-color);
+}
+[data-theme="light"] .auth-mode-selector {
+    background: #e2e8f0;
+}
+.auth-mode-tab {
+    flex: 1;
+    padding: 8px 10px;
+    border-radius: var(--radius-sm);
+    font-size: 11.5px;
+    font-weight: 700;
+    border: none;
+    cursor: pointer;
+    background: transparent;
+    color: var(--text-muted);
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+}
+.auth-mode-tab.active-demo {
+    background: #fef3c7 !important;
+    color: #b45309 !important;
+    box-shadow: 0 2px 8px rgba(245, 158, 11, 0.35);
+}
+.auth-mode-tab.active-live {
+    background: #d1fae5 !important;
+    color: #065f46 !important;
+    box-shadow: 0 2px 8px rgba(16, 185, 129, 0.35);
+}
+
 .oauth-collapse-container.active {
     display: block !important;
     animation: fadeIn 0.2s ease-in-out;
