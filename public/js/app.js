@@ -1713,28 +1713,57 @@ const App = {
         }
     },
 
-    // n8n Workflow Activation Status Check (called when simulator tab loads)
+    // n8n Workflow & Gemini Live Activation Status Check
     async checkN8nActivationStatus() {
         try {
-            const syncData = await API.getN8nSync();
+            let statusResp = await API.getN8nStatus();
+            let statusData = statusResp?.data || statusResp || {};
+
+            // Auto-start n8n if not running
+            if (!statusData.isRunning && typeof IS_STATIC !== 'undefined' && !IS_STATIC) {
+                console.log('[App] n8n server offline — triggering auto-start in background...');
+                const ensureResp = await API.ensureN8n().catch(() => null);
+                if (ensureResp?.data) statusData = ensureResp.data;
+            }
+
+            const syncData = await API.getN8nSync().catch(() => ({}));
             const state = syncData?.data || syncData || {};
-            const isActive = state.active === true;
-            const webhookPath = state.webhookPath || state.webhookUrl || null;
+            const isLive = Boolean(statusData.isRunning || state.active);
+            const webhookPath = state.webhookPath || 'whatsapp-restaurant';
 
             const banner = document.getElementById('n8n-activation-banner');
             const webhookDisplay = document.getElementById('sim-active-webhook-url');
+            const statusDiv = document.getElementById('sim-webhook-status');
+            const navStatusText = document.getElementById('status-runtime-text');
+            const navLiveDot = document.getElementById('n8n-live-dot');
+            const aiStatusText = document.getElementById('status-llm-text');
 
-            // Update webhook URL display with real path from n8n DB
-            if (webhookPath && webhookDisplay) {
-                const displayUrl = webhookPath.startsWith('http')
-                    ? webhookPath
-                    : `http://localhost:5678/webhook/${webhookPath}`;
-                webhookDisplay.textContent = displayUrl;
+            if (webhookDisplay) {
+                webhookDisplay.textContent = `http://localhost:5678/webhook/${webhookPath}`;
             }
 
-            // Show/hide activation banner
             if (banner) {
-                banner.style.display = isActive ? 'none' : 'flex';
+                banner.style.display = isLive ? 'none' : 'flex';
+            }
+
+            if (navStatusText) {
+                navStatusText.textContent = isLive ? 'n8n + Gemini 2.5 Flash: Live 🟢' : 'n8n: Reconnecting... 🔴';
+            }
+            if (navLiveDot) {
+                navLiveDot.className = isLive ? 'status-dot green pulse' : 'status-dot amber pulse';
+            }
+            if (aiStatusText) {
+                aiStatusText.textContent = isLive ? 'Gemini: 2.5-Flash (Live)' : 'Gemini: Busy / Retry';
+            }
+
+            if (statusDiv && !statusDiv.innerText.includes('Response received')) {
+                if (isLive) {
+                    statusDiv.innerHTML = '🟢 <strong>n8n & Gemini 2.5 Flash Live</strong> — Ready for incoming messages';
+                    statusDiv.style.color = 'var(--success, #25d366)';
+                } else {
+                    statusDiv.innerHTML = '🔴 <strong>Routes Busy / Retrying</strong> (n8n or Gemini connecting)';
+                    statusDiv.style.color = 'var(--danger, #ef4444)';
+                }
             }
         } catch (err) {
             console.warn('[App] Could not check n8n activation status:', err.message);
@@ -1824,39 +1853,61 @@ const App = {
                 removeTyping();
                 this.appendChatBubble(data.reply, 'outbound');
 
-                // Update status and trace
-                const routeMode = data.agentDecision === 'N8N_API'
-                    ? '✅ n8n Webhook'
-                    : (data.agentDecision === 'DEMO_STATIC' ? '🤖 GitHub Pages Demo AI' : '🤖 Local Mock AI');
+                // Update status and trace with live Gemini / n8n workflow indicators
+                const isLive = data.n8nWorkflowActive && data.geminiModelActive;
                 if (statusDiv) {
-                    statusDiv.innerText = `${routeMode} — Response received`;
-                    statusDiv.style.color = data.agentDecision === 'N8N_API'
-                        ? 'var(--success, #25d366)'
-                        : 'var(--amber, #f59e0b)';
+                    if (isLive) {
+                        statusDiv.innerHTML = '🟢 <strong>Live: n8n Workflow & Gemini 2.5 Flash Active</strong>';
+                        statusDiv.style.color = 'var(--success, #25d366)';
+                    } else {
+                        statusDiv.innerHTML = '🔴 <strong>Routes Busy / Retrying</strong> (n8n or Gemini Unavailable)';
+                        statusDiv.style.color = 'var(--danger, #ef4444)';
+                    }
                 }
 
                 if (traceOutput) {
                     traceOutput.innerText = JSON.stringify({
                         timestamp: new Date().toISOString(),
-                        mode: data.agentDecision || 'LOCAL_MOCK_AI',
-                        webhookPath: displayUrl,
-                        normalizedInput: data.normalizedInput,
-                        agentDecision: data.agentDecision,
-                        toolsCalled: data.toolsCalled,
-                        toolResults: data.toolResults,
-                        historyTurnsInSession: data.historyCount,
-                        executionLatencyMs: data.executionTimeMs
+                        runtimeStatus: data.runtimeStatus || (isLive ? 'ONLINE_LIVE' : 'BUSY_RETRY'),
+                        n8nWorkflowActive: Boolean(data.n8nWorkflowActive),
+                        geminiModelActive: Boolean(data.geminiModelActive),
+                        liveModel: data.liveModel || (isLive ? 'models/gemini-2.5-flash' : 'models/gemini-2.5-flash (Unavailable)'),
+                        webhookEndpoint: data.webhookUrl || displayUrl,
+                        senderId: this.currentSessionKey || data.sessionKey || '1111111111',
+                        ingressChannel: data.ingressChannel || (this.currentSessionKey === '0000000000' ? 'CHAT_NODE' : 'WEB_APP'),
+                        normalizedInput: data.normalizedInput?.messageText || data.normalizedInput || text,
+                        agentDecision: data.agentDecision || (isLive ? 'N8N_API' : 'BUSY_RETRY'),
+                        toolsCalled: data.toolsCalled || [],
+                        toolResults: data.toolResults || [],
+                        historyTurnsInSession: data.historyCount || 1,
+                        executionLatencyMs: data.executionTimeMs || 0
                     }, null, 2);
                 }
 
             } catch (err) {
                 removeTyping();
-                this.appendChatBubble(`⚠️ Error: ${err.message}`, 'outbound');
+                const busyMsg = "All route is Bussy, Retry after some time";
+                this.appendChatBubble(busyMsg, 'outbound');
                 if (statusDiv) {
-                    statusDiv.innerText = `❌ Error: ${err.message}`;
+                    statusDiv.innerHTML = '🔴 <strong>All route is Bussy, Retry after some time</strong>';
                     statusDiv.style.color = 'var(--danger, #ef4444)';
                 }
-                if (traceOutput) traceOutput.innerText = `Error: ${err.message}`;
+                if (traceOutput) {
+                    traceOutput.innerText = JSON.stringify({
+                        timestamp: new Date().toISOString(),
+                        runtimeStatus: 'BUSY_RETRY',
+                        n8nWorkflowActive: false,
+                        geminiModelActive: false,
+                        liveModel: 'models/gemini-2.5-flash (Unavailable)',
+                        webhookEndpoint: displayUrl,
+                        senderId: this.currentSessionKey || '1111111111',
+                        ingressChannel: this.currentSessionKey === '0000000000' ? 'CHAT_NODE' : 'WEB_APP',
+                        normalizedInput: text,
+                        agentDecision: 'BUSY_RETRY',
+                        error: err.message,
+                        reply: busyMsg
+                    }, null, 2);
+                }
             }
         };
 

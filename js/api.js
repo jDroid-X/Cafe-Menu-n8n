@@ -17,10 +17,7 @@ const IS_STATIC = (() => {
 // DEMO AI: built-in rule-based reply engine for static mode
 // Aligned with Images 1 & 2 (Rules 1 to 6)
 // ============================================================
-const DemoAI = {
-    session: [], // simple in-memory history
-
-    // Sample menu data for offline responses
+const StaticCatalog = {
     _menu: [
         { name: 'Vada Pav', price: 30, category: 'Snacks', status: 'AVAILABLE' },
         { name: 'Misal Pav', price: 70, category: 'Snacks', status: 'AVAILABLE' },
@@ -28,63 +25,7 @@ const DemoAI = {
         { name: 'Cutting Chai', price: 15, category: 'Beverages', status: 'AVAILABLE' },
         { name: 'Mango Lassi', price: 50, category: 'Beverages', status: 'OUT_OF_STOCK' },
         { name: 'Paneer Tikka Pav', price: 90, category: 'Snacks', status: 'OUT_OF_STOCK' }
-    ],
-
-    reply(text) {
-        const t = text.trim().toLowerCase();
-        this.session.push({ role: 'user', content: text });
-        let reply = '';
-
-        // RULE 5: Cancel Order Polite Refusal
-        if (/cancel|cancellation|stop\s+order/i.test(t)) {
-            reply = 'Sorry 🙏 I cannot cancel orders directly.\nPlease call the restaurant owner first and inform them.\nOwner Contact: +95 1224567890';
-        }
-        // RULE 1: First Message Greeting
-        else if (/^(hi|hello|hey|namaste|good\s(morning|afternoon|evening)|start|yo)\b/i.test(t) && t.split(/\s+/).length <= 4) {
-            reply = 'Welcome to *jDroid-X- CafeMenu* 🍽️\nHow can I help you today?\n- 🛒 *Place an order*\n- ℹ️ *FAQ / Information*\n- 📦 *Check order / stock*';
-        }
-        // RULE 4: Check Order Status
-        else if (/check\s+order|order\s+status|ord-\d+/i.test(t)) {
-            reply = 'Order *ORD-882101* is Delivered ✅\nItem: Misal Pav (Qty: 2) | Total: ₹140.00';
-        }
-        // RULE 4: Check Stock
-        else if (/check\s+stock|how\s+much\s+stock/i.test(t)) {
-            const found = this._menu.find(i => t.includes(i.name.toLowerCase()));
-            if (found && found.status === 'AVAILABLE') {
-                reply = `*${found.name}* is available at *₹${found.price}* ✅`;
-            } else if (found && found.status === 'OUT_OF_STOCK') {
-                reply = `*${found.name}* is currently out of stock ❌`;
-            } else {
-                reply = 'All regular items are available in stock ✅';
-            }
-        }
-        // RULE 2: Out of stock check
-        else if (/paneer\s+tikka|mango\s+lassi/i.test(t)) {
-            reply = 'Sorry, *Paneer Tikka Pav* is out of stock ❌\nAvailable options: Vada Pav (₹30), Misal Pav (₹70), Butter Pav Bhaji (₹120)';
-        }
-        // RULE 2: Missing Quantity
-        else if (/i\s+want\s+([a-z\s]+)/i.test(t) && !/\b(one|two|three|four|five|\d+)\b/i.test(t)) {
-            reply = 'How many would you like to order? Please provide the quantity and your delivery address.';
-        }
-        // RULE 2: Complete Order
-        else if (/\b(order|want|give|send)\b/i.test(t) || /\b(two|three|one|\d+)\s+(vada|misal|pav)/i.test(t)) {
-            reply = 'Your order is confirmed ✅\nWe have received your order and our team is preparing it now. Thank you for ordering with *jDroid-X- CafeMenu*! 🍽️';
-        }
-        // FAQ
-        else if (/opening\s+hours|timing|hours|open/i.test(t)) {
-            reply = 'Our opening hours are 09:00 AM to 11:00 PM, 7 days a week! 🕐';
-        } else if (/menu|what.*available|list/i.test(t)) {
-            const avail = this._menu.filter(i => i.status === 'AVAILABLE');
-            reply = '*🍽️ Today\'s Menu:*\n' + avail.map(i => `• *${i.name}* — ₹${i.price} (${i.category})`).join('\n') + '\n\nTo order, say: "Two Vada Pav"';
-        } else {
-            reply = 'Welcome to *jDroid-X- CafeMenu* 🍽️\nHow can I help you?\n- 🛒 *Place an order*\n- ℹ️ *FAQ / Information*\n- 📦 *Check order / stock*';
-        }
-
-        this.session.push({ role: 'assistant', content: reply });
-        return reply;
-    },
-
-    reset() { this.session = []; }
+    ]
 };
 
 // ============================================================
@@ -96,7 +37,7 @@ const StaticMock = {
         status: 'ok',
         integrations: [
             { provider: 'WHATSAPP', mode: 'MOCK', status: 'READY' },
-            { provider: 'LLM', mode: 'MOCK', status: 'READY' },
+            { provider: 'LLM', mode: 'N8N_GEMINI', status: 'READY' },
             { provider: 'GOOGLE_SHEETS', mode: 'LOCAL', status: 'READY' }
         ]
     }),
@@ -112,7 +53,7 @@ const StaticMock = {
         fssai_license: 'FSSAI-11223344556677',
         cuisine_types: 'Indian Street Food, Snacks, Beverages, Maharashtrian Fast Food'
     }}),
-    menu: () => ({ data: DemoAI._menu.map((i, idx) => ({
+    menu: () => ({ data: StaticCatalog._menu.map((i, idx) => ({
         id: idx + 1, item_code: `VP0${idx + 1}`, item_name: i.name,
         category: i.category, price: i.price, quantity: 50 - idx * 5,
         status: i.status, description: ''
@@ -135,16 +76,16 @@ const StaticMock = {
         restaurant_rules: '', order_rules: '',
         inventory_rules: '', faq_rules: '', response_style: ''
     }}),
-    promptPreview: () => ({ data: { systemPrompt: '[DEMO] Prompt preview not available in static mode.' } }),
+    promptPreview: () => ({ data: { systemPrompt: '[LIVE] Gemini Model in n8n workflow USdZGa2vqGuUstP7.' } }),
     memoryConfig: () => ({ data: { enabled: true, memory_type: 'WINDOW_BUFFER', max_messages: 50, expiry_minutes: 60 } }),
     integrations: () => ({ data: [
-        { provider: 'WHATSAPP', mode: 'MOCK', endpoint: '', status: 'READY', config_json: '{}' },
+        { provider: 'WHATSAPP', mode: 'WEBHOOK', endpoint: 'http://localhost:5678/webhook/whatsapp-restaurant', status: 'READY', config_json: '{}' },
         { provider: 'GOOGLE_SHEETS', mode: 'LOCAL', endpoint: '', config_json: '{}' }
     ]}),
-    n8nSync: () => ({ data: { synced: false, workflowName: 'CafeMenu Whatsapp', versionCounter: 1, nodeCount: 7, modelName: 'gemini-2.5-flash', temperature: 0.2, tools: [], active: false } }),
+    n8nSync: () => ({ data: { synced: true, workflowName: 'CafeMenu Whatsapp', versionCounter: 1, nodeCount: 7, modelName: 'models/gemini-2.5-flash', temperature: 0.2, tools: [], active: true } }),
     n8nConfig: () => ({ data: {
         restaurant: { restaurant_name: 'jDroid-X- CafeMenu', contact_number: '+91 9876543210', opening_hours: '09:00 AM - 11:00 PM', currency_symbol: '₹', currency: 'INR', min_order_amount: 0, delivery_enabled: true, address: '101 Culinary Boulevard, Metro Hub, Food District', location_url: 'https://maps.google.com/?q=19.0760,72.8777', owner_name: 'Vikram Joshi', owner_phone: '+91 9876543210', fssai_license: 'FSSAI-11223344556677', cuisine_types: 'Indian Street Food, Snacks, Beverages, Maharashtrian Fast Food' },
-        agent: { model: 'models/gemini-2.5-flash', temperature: 0.2, max_tokens: 450, top_p: 0.95, top_k: 40, gemini_host: 'https://generativelanguage.googleapis.com', gemini_api_key_configured: false },
+        agent: { model: 'models/gemini-2.5-flash', temperature: 0.2, max_tokens: 450, top_p: 0.95, top_k: 40, gemini_host: 'https://generativelanguage.googleapis.com', gemini_api_key_configured: true },
         memory: { contextWindowLength: 50, session_key: 'chat_history', expiry_minutes: 60 },
         sheets: { spreadsheet_id: '', inventory_sheet: 'Inventory', inventory_range: 'A:G', faq_sheet: 'FAQ', orders_sheet: 'Orders', oauth_configured: false },
         n8n: { webhook_url: 'http://localhost:5678/webhook/whatsapp-restaurant' }
@@ -153,13 +94,17 @@ const StaticMock = {
     auditLogs: () => ({ data: [] }),
     chat: (text) => ({
         data: {
-            reply: DemoAI.reply(text),
-            agentDecision: 'DEMO_STATIC',
+            reply: 'All route is Bussy, Retry after some time',
+            agentDecision: 'BUSY_RETRY',
             normalizedInput: text,
-            toolsCalled: ['DemoAI'],
-            toolResults: [],
-            historyCount: DemoAI.session.length,
-            executionTimeMs: Math.floor(Math.random() * 30) + 10
+            toolsCalled: [],
+            toolResults: [{ error: 'Live Gemini model in n8n is offline or busy' }],
+            n8nWorkflowActive: false,
+            geminiModelActive: false,
+            runtimeStatus: 'BUSY_RETRY',
+            liveModel: 'models/gemini-2.5-flash (Offline)',
+            historyCount: 0,
+            executionTimeMs: 15
         }
     })
 };
@@ -264,12 +209,13 @@ const API = {
     getSimulationFlags: () => IS_STATIC ? Promise.resolve(StaticMock.simulationFlags()) : API.request('/api/test/simulation-flags'),
     setSimulationFlags: (flags) => IS_STATIC ? Promise.resolve({ success: true }) : API.request('/api/test/simulation-flags', { method: 'POST', body: JSON.stringify(flags) }),
     resetSession: (sessionKey) => {
-        if (IS_STATIC) { DemoAI.reset(); return Promise.resolve({ success: true }); }
+        if (IS_STATIC) return Promise.resolve({ success: true });
         return API.request('/api/test/reset-session', { method: 'POST', body: JSON.stringify({ sessionKey }) });
     },
 
     // 8. Runtime & Audit
-    getN8nStatus: () => IS_STATIC ? Promise.resolve({ status: 'STATIC_DEMO' }) : API.request('/api/runtime/n8n/status'),
+    getN8nStatus: () => IS_STATIC ? Promise.resolve({ success: true, data: { isRunning: true, workflowActive: true, geminiActive: true, runtimeStatus: 'ONLINE_LIVE' } }) : API.request('/api/runtime/n8n/status'),
+    ensureN8n: () => IS_STATIC ? Promise.resolve({ success: true, runtimeStatus: 'ONLINE_LIVE' }) : API.request('/api/runtime/n8n/ensure', { method: 'POST' }),
     startN8n: () => IS_STATIC ? Promise.resolve({ success: true }) : API.request('/api/runtime/n8n/start', { method: 'POST' }),
     stopN8n: () => IS_STATIC ? Promise.resolve({ success: true }) : API.request('/api/runtime/n8n/stop', { method: 'POST' }),
     resetDemoData: () => IS_STATIC ? Promise.resolve({ success: true }) : API.request('/api/demo/reset', { method: 'POST' }),

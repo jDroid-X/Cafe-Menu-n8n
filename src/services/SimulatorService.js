@@ -146,10 +146,13 @@ class SimulatorService {
         // Helper: try a webhook endpoint (both production + test URLs), return reply string or null
         const tryWebhookOnPort = async (baseUrl) => {
             const payload = {
+                senderId: sessionKey,
+                sessionId: sessionKey,
                 phone: normalized.senderPhone,
                 name: normalized.senderName || 'Customer',
                 text: normalized.messageText,
-                sessionId: sessionKey
+                message: normalized.messageText,
+                chatInput: normalized.messageText
             };
             const bodyStr = JSON.stringify(payload);
 
@@ -173,8 +176,7 @@ class SimulatorService {
                     if (method === 'POST') opts.body = bodyStr;
                     else {
                         // For GET: append query params
-                        const qs = new URLSearchParams(payload).toString();
-                        opts.url = `${url}?${qs}`;
+                        opts.url = `${url}?${new URLSearchParams(payload).toString()}`;
                     }
 
                     const finalUrl = method === 'GET' ? `${url}?${new URLSearchParams(payload).toString()}` : url;
@@ -191,13 +193,13 @@ class SimulatorService {
                     try { data = await resp.json(); } catch (_) { continue; }
 
                     // Extract reply from various n8n response shapes
-                    const reply = data.output || data.text || data.message || data.reply
-                        || (Array.isArray(data) && (data[0]?.output || data[0]?.text || data[0]?.message))
+                    const reply = data.reply || data.output || data.text || data.message
+                        || (Array.isArray(data) && (data[0]?.reply || data[0]?.output || data[0]?.text || data[0]?.message))
                         || null;
 
                     if (reply) {
-                        console.log(`[SimulatorService]   ✅ Got reply via ${method} ${finalUrl}`);
-                        return { reply: String(reply), urlUsed: finalUrl };
+                        console.log(`[SimulatorService]   ✅ Got live Gemini reply via ${method} ${finalUrl}`);
+                        return { reply: String(reply), urlUsed: finalUrl, rawData: data };
                     }
                     console.log(`[SimulatorService]   ✗ Response had no reply field:`, JSON.stringify(data).substring(0, 100));
                 } catch (err) {
@@ -216,19 +218,25 @@ class SimulatorService {
             setTimeout(() => { s.destroy(); resolve(false); }, 1000);
         });
 
-        // [1] Try REAL n8n on port 5678 first (has Google Sheets + Gemini credentials)
+        // [1] Ensure real n8n on port 5678 is running (auto-start if missing)
         let n8nReply = null;
         let n8nPortUsed = null;
 
-        const realN8nAlive = await isPortListening(5678);
-        if (realN8nAlive) {
-            console.log(`[SimulatorService] → Trying real n8n on port 5678 (path: /webhook/${webhookPath} + test variant)`);
+        let realN8nAlive = await isPortListening(5678);
+        if (!realN8nAlive && !rawInput.skipN8n) {
+            console.log('[SimulatorService] n8n port 5678 offline. Triggering auto-start...');
+            await N8nManager.getInstance().ensureN8nRunning();
+            realN8nAlive = await isPortListening(5678);
+        }
+
+        if (realN8nAlive && !rawInput.skipN8n) {
+            console.log(`[SimulatorService] → Trying real n8n on port 5678 (path: /webhook/${webhookPath})`);
             const result = await tryWebhookOnPort('http://localhost:5678');
             if (result) { n8nReply = result.reply; n8nPortUsed = 5678; }
         }
 
-        // [2] If real n8n didn't respond, try demo instance port
-        if (!n8nReply && n8nIsActive && n8nStatus.configuredPort && n8nStatus.configuredPort !== 5678) {
+        // [2] If real n8n didn't respond, try demo instance port if configured
+        if (!n8nReply && !rawInput.skipN8n && n8nIsActive && n8nStatus.configuredPort && n8nStatus.configuredPort !== 5678) {
             const demoPort = n8nStatus.configuredPort;
             console.log(`[SimulatorService] → Trying demo n8n on port ${demoPort}`);
             const result = await tryWebhookOnPort(`http://localhost:${demoPort}`);
@@ -245,22 +253,53 @@ class SimulatorService {
             return {
                 normalizedInput: normalized,
                 sessionKey,
+                ingressChannel,
                 historyCount: history.length,
                 agentDecision: 'N8N_API',
-                toolsCalled: [],
+                toolsCalled: ['Google Gemini 2.5 Flash', 'n8n Workflow (USdZGa2vqGuUstP7)'],
                 toolResults: [],
                 reply: n8nReply,
+                n8nWorkflowActive: true,
+                geminiModelActive: true,
+                runtimeStatus: 'ONLINE_LIVE',
+                liveModel: 'models/gemini-2.5-flash',
+                webhookUrl: `http://localhost:${n8nPortUsed}/webhook/${webhookPath}`,
                 executionTimeMs: Date.now() - startTime,
                 _n8nPort: n8nPortUsed
             };
         }
 
-        // [3] Both n8n instances unreachable — fall through to local Mock AI
-        if (realN8nAlive || n8nIsActive) {
-            console.warn(`[SimulatorService] n8n reachable but webhook /webhook/${webhookPath} returned no reply. Falling back to Local Mock AI.`);
-        } else {
-            console.log('[SimulatorService] n8n not running — using Local Mock AI');
+        // [3] If not explicitly running in offline unit-test mode (skipN8n),
+        // NEVER fall back to local rule-based mock prompt!
+        // Return standard busy retry notification as instructed by user:
+        if (!rawInput.skipN8n) {
+            const busyReply = "All route is Bussy, Retry after some time";
+            this.memoryService.recordMessage(session.id, 'OUTBOUND', busyReply);
+            this.auditModel.log('SIMULATOR', 'WARNING', 'N8N_GEMINI_BUSY_RETRY', {
+                sender: sessionKey,
+                port: n8nPortUsed || 5678,
+                webhookPath: `/webhook/${webhookPath}`
+            });
+            return {
+                normalizedInput: normalized,
+                sessionKey,
+                ingressChannel,
+                historyCount: history.length,
+                agentDecision: 'BUSY_RETRY',
+                toolsCalled: [],
+                toolResults: [{ error: 'All route is Bussy, Retry after some time' }],
+                reply: busyReply,
+                n8nWorkflowActive: realN8nAlive,
+                geminiModelActive: false,
+                runtimeStatus: 'BUSY_RETRY',
+                liveModel: 'models/gemini-2.5-flash (Busy/Unavailable)',
+                webhookUrl: `http://localhost:${n8nPortUsed || 5678}/webhook/${webhookPath}`,
+                executionTimeMs: Date.now() - startTime
+            };
         }
+
+        // Offline Unit-Test Execution Fallback (only triggered when skipN8n is true)
+        console.log('[SimulatorService] skipN8n requested — running unit-test tool validation');
 
         // 6. Define Tools with Inventory Failure simulation hook (T09)
         const tools = {

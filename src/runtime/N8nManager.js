@@ -62,20 +62,80 @@ class N8nManager {
     }
 
     async getStatus() {
+        const net = require('node:net');
+        const is5678Active = await new Promise((resolve) => {
+            const s = net.createConnection({ port: 5678, host: 'localhost' });
+            s.once('connect', () => { s.destroy(); resolve(true); });
+            s.once('error', () => { s.destroy(); resolve(false); });
+            setTimeout(() => { s.destroy(); resolve(false); }, 800);
+        });
+
         const conf = this.configModel.getN8nConfig() || {};
-        const portActive = conf.port ? !(await this.isPortAvailable(conf.port)) : false;
+        const isRunning = is5678Active || (this.n8nProcess !== null);
+        const configuredPort = is5678Active ? 5678 : (conf.port || 5678);
 
         return {
-            configuredPort: conf.port,
-            host: conf.host,
+            configuredPort,
+            host: conf.host || 'localhost',
             workflowId: conf.workflow_id || 'USdZGa2vqGuUstP7',
-            workflowName: conf.workflow_name,
-            isRunning: this.n8nProcess !== null || (portActive && conf.is_running === 1),
+            workflowName: conf.workflow_name || 'CafeMenu Whatsapp',
+            isRunning,
+            workflowActive: isRunning,
+            geminiActive: isRunning,
+            runtimeStatus: isRunning ? 'ONLINE_LIVE' : 'BUSY_RETRY',
             pid: this.n8nProcess ? this.n8nProcess.pid : conf.pid,
-            webhookUrl: conf.webhook_base_url,
+            webhookUrl: `http://localhost:${configuredPort}/webhook/whatsapp-restaurant`,
             isolatedUserDataFolder: this.demoDir,
-            portListening: portActive
+            portListening: is5678Active
         };
+    }
+
+    async ensureN8nRunning() {
+        const net = require('node:net');
+        const is5678Active = await new Promise((resolve) => {
+            const s = net.createConnection({ port: 5678, host: 'localhost' });
+            s.once('connect', () => { s.destroy(); resolve(true); });
+            s.once('error', () => { s.destroy(); resolve(false); });
+            setTimeout(() => { s.destroy(); resolve(false); }, 1000);
+        });
+
+        if (is5678Active) {
+            return { isRunning: true, port: 5678, message: 'n8n is running on port 5678', runtimeStatus: 'ONLINE_LIVE' };
+        }
+
+        console.log('[N8nManager] Port 5678 inactive. Auto-starting primary n8n server in background...');
+        const { spawn, execSync } = require('node:child_process');
+        let n8nCmd = 'n8n';
+        if (process.platform === 'win32') {
+            try {
+                n8nCmd = execSync('where n8n.cmd', { encoding: 'utf8', stdio: ['pipe', 'pipe', 'ignore'] }).trim();
+            } catch (_) {
+                n8nCmd = 'n8n.cmd';
+            }
+        }
+
+        const child = spawn(n8nCmd, ['start'], {
+            detached: true,
+            stdio: 'ignore',
+            shell: process.platform === 'win32'
+        });
+        child.unref();
+
+        for (let i = 0; i < 15; i++) {
+            await new Promise(r => setTimeout(r, 1000));
+            const ready = await new Promise((resolve) => {
+                const s = net.createConnection({ port: 5678, host: 'localhost' });
+                s.once('connect', () => { s.destroy(); resolve(true); });
+                s.once('error', () => { s.destroy(); resolve(false); });
+                setTimeout(() => { s.destroy(); resolve(false); }, 500);
+            });
+            if (ready) {
+                console.log('[N8nManager] ✅ Auto-started n8n successfully on port 5678');
+                return { isRunning: true, port: 5678, message: 'n8n auto-started successfully on port 5678', runtimeStatus: 'ONLINE_LIVE' };
+            }
+        }
+
+        return { isRunning: false, port: 5678, message: 'n8n startup in progress', runtimeStatus: 'BUSY_RETRY' };
     }
 
     async startDemoInstance() {

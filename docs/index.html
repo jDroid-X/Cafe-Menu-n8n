@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en" data-theme="dark">
 <head>
     <meta charset="UTF-8">
@@ -7,42 +7,122 @@
     <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
+    <!-- TOAST NOTIFICATION CONTAINER -->
+    <div id="toast-container" class="toast-container"></div>
 
-    <!-- AUTHENTICATION OVERLAY / LOGIN PAGE -->
+    <!-- AUTHENTICATION OVERLAY / DUAL MODE LOGIN SYSTEM (STAGE 2) -->
     <div id="auth-overlay" class="auth-overlay">
-        <div class="auth-card">
-            <div class="auth-header">
+        <div class="auth-card" style="width: 440px;">
+            <div class="auth-header" style="margin-bottom: 12px;">
                 <div class="auth-logo">🍽️</div>
-                <h2 style="font-size: 18px; font-weight: 700; color: var(--text-main);">jDroid-X- CafeMenu</h2>
-                <p style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">Executive AI Food Ordering & Operations Desk</p>
+                <h2 style="font-size: 19px; font-weight: 700; color: var(--text-main);">jDroid-X- CafeMenu</h2>
+                <p style="font-size: 12px; color: var(--text-muted); margin-top: 3px;">Executive AI Food Ordering & Operations Desk</p>
             </div>
-            <form id="form-login">
-                <div class="form-group">
-                    <label for="login-email">Executive User / Email</label>
-                    <input type="email" id="login-email" value="admin@jdroidx.ai" required>
+
+            <!-- INTERACTIVE MODE SELECTOR: [ DEMO MODE ] ⇄ [ LIVE / PRODUCTION ] -->
+            <div class="auth-mode-selector">
+                <button type="button" id="auth-tab-demo" class="auth-mode-tab active-demo" onclick="App.setAuthMode('DEMO')">
+                    🟡 DEMO MODE
+                </button>
+                <button type="button" id="auth-tab-live" class="auth-mode-tab" onclick="App.setAuthMode('LIVE')">
+                    🟢 LIVE / PRODUCTION
+                </button>
+            </div>
+
+            <!-- DYNAMIC VISUAL INDICATOR BADGE -->
+            <div id="auth-indicator-badge" style="text-align: center; margin-bottom: 14px;">
+                <span id="auth-badge-pill" class="badge" style="background: rgba(245, 158, 11, 0.15); color: #b45309; border: 1px solid rgba(245, 158, 11, 0.4); font-size: 11px; font-weight: 700; padding: 4px 12px; border-radius: 20px;">
+                    🟡 DEMO MODE — Seeded Sandbox
+                </span>
+            </div>
+
+            <!-- DEMO MODE PANEL -->
+            <div id="auth-panel-demo">
+                <div style="background: rgba(245, 158, 11, 0.08); border: 1px dashed rgba(245, 158, 11, 0.3); border-radius: 8px; padding: 10px 12px; font-size: 11.5px; color: var(--text-muted); margin-bottom: 14px; line-height: 1.45;">
+                    💡 <strong>1-Click Demo Sandbox:</strong> Loads pre-seeded SQLite database + sample menu items, simulated Google Sheets sync & test orders.
                 </div>
-                <div class="form-group">
-                    <label for="login-password">Password</label>
-                    <input type="password" id="login-password" value="admin123" required>
-                </div>
-                <div class="form-group">
-                    <label for="login-role">Operational Role</label>
-                    <select id="login-role">
-                        <option value="CFO / Executive">CFO / Executive Director</option>
-                        <option value="Store Manager">Store & Kitchen Manager</option>
-                        <option value="System Admin" selected>System Administrator</option>
-                    </select>
+                <form id="form-login-demo">
+                    <div class="form-group">
+                        <label for="login-email">Executive User / Email</label>
+                        <input type="email" id="login-email" value="demo@jdroidx.ai" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="login-password">Password</label>
+                        <input type="password" id="login-password" value="demo123" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="login-role">Operational Role</label>
+                        <select id="login-role">
+                            <option value="System Admin" selected>System Administrator</option>
+                            <option value="CFO / Executive">CFO / Executive Director</option>
+                            <option value="Store Manager">Store & Kitchen Manager</option>
+                        </select>
+                    </div>
+
+                    <div style="display: flex; gap: 6px; margin: 10px 0 14px 0; font-size: 11px;">
+                        <span style="color: var(--text-dim);">Quick Demo Fill:</span>
+                        <a href="#" style="color: var(--brand-primary); text-decoration: none; font-weight: 600;" onclick="App.setLoginDemo('demo@jdroidx.ai', 'demo123', 'System Admin'); return false;">Admin</a> |
+                        <a href="#" style="color: var(--brand-primary); text-decoration: none; font-weight: 600;" onclick="App.setLoginDemo('cfo@jdroidx.ai', 'cfo123', 'CFO / Executive'); return false;">CFO</a> |
+                        <a href="#" style="color: var(--brand-primary); text-decoration: none; font-weight: 600;" onclick="App.setLoginDemo('manager@jdroidx.ai', 'mgr123', 'Store Manager'); return false;">Manager</a>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary" style="width: 100%; padding: 10px; font-weight: 700; font-size: 13px;">
+                        🚀 1-Click Sign In (Demo Mode)
+                    </button>
+                </form>
+            </div>
+
+            <!-- LIVE / PRODUCTION PANEL (HIDDEN BY DEFAULT) -->
+            <div id="auth-panel-live" style="display: none;">
+                <div style="background: rgba(16, 185, 129, 0.08); border: 1px dashed rgba(16, 185, 129, 0.35); border-radius: 8px; padding: 10px 12px; font-size: 11.5px; color: var(--text-muted); margin-bottom: 14px; line-height: 1.45;">
+                    🛡️ <strong>Fresh Production Tenant:</strong> Zero orders, empty sales stats, fresh restaurant profile. Retains baseline AI prompt templates (Rules 1–6) & FAQ schema.
                 </div>
 
-                <div style="display: flex; gap: 6px; margin: 10px 0; font-size: 11px;">
-                    <span style="color: var(--text-dim);">Quick Demo Fill:</span>
-                    <a href="#" style="color: var(--brand-primary); text-decoration: none;" onclick="App.setLoginDemo('admin@jdroidx.ai', 'admin123', 'System Admin'); return false;">Admin</a> |
-                    <a href="#" style="color: var(--brand-primary); text-decoration: none;" onclick="App.setLoginDemo('cfo@jdroidx.ai', 'cfo123', 'CFO / Executive'); return false;">CFO</a> |
-                    <a href="#" style="color: var(--brand-primary); text-decoration: none;" onclick="App.setLoginDemo('manager@jdroidx.ai', 'mgr123', 'Store Manager'); return false;">Manager</a>
+                <!-- Google OAuth 2.0 Sign In Button -->
+                <button type="button" class="btn btn-secondary" onclick="App.loginWithGoogle()" style="width: 100%; padding: 9px; font-size: 12.5px; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 8px; margin-bottom: 14px;">
+                    <svg width="16" height="16" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/></svg>
+                    Sign In with Google (OAuth 2.0)
+                </button>
+
+                <div style="display: flex; align-items: center; margin: 12px 0; color: var(--text-dim); font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.5px;">
+                    <div style="flex: 1; height: 1px; background: var(--border-color);"></div>
+                    <span style="padding: 0 8px;">or Corporate Email & OTP</span>
+                    <div style="flex: 1; height: 1px; background: var(--border-color);"></div>
                 </div>
 
-                <button type="submit" class="btn btn-primary" style="width: 100%; padding: 9px; margin-top: 6px;">Sign In to Executive Console</button>
-            </form>
+                <form id="form-login-live" onsubmit="App.handleLiveLoginSubmit(event)">
+                    <div class="form-group">
+                        <label for="login-live-email">Corporate Email</label>
+                        <div style="display: flex; gap: 6px;">
+                            <input type="email" id="login-live-email" placeholder="executive@yourcompany.com" required style="flex: 1;">
+                            <button type="button" id="btn-send-otp" class="btn btn-secondary" onclick="App.sendSecurityCode()" style="padding: 6px 12px; font-size: 11px; white-space: nowrap;">
+                                Send Code 📩
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="login-live-otp">Mandatory Security Code (6-Digit OTP)</label>
+                        <input type="text" id="login-live-otp" placeholder="e.g. 882101" maxlength="6" pattern="[0-9]{6}" required style="font-family: var(--font-mono); letter-spacing: 3px; font-size: 14px; text-align: center;">
+                        <span style="font-size: 10.5px; color: var(--text-dim); margin-top: 3px; display: block;">
+                            🔒 Mandatory OTP verification prevents unauthorized production access.
+                        </span>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="login-live-role">Executive Role</label>
+                        <select id="login-live-role">
+                            <option value="CFO / Executive" selected>CFO / Executive Director</option>
+                            <option value="Store Manager">Store & Kitchen Manager</option>
+                            <option value="System Admin">System Administrator</option>
+                        </select>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary" style="width: 100%; padding: 10px; font-weight: 700; font-size: 13px; background: #059669; border-color: #059669;">
+                        🛡️ Verify OTP & Access Live Tenant
+                    </button>
+                </form>
+            </div>
         </div>
     </div>
 
@@ -94,32 +174,29 @@
         <aside class="app-sidebar">
             <div class="nav-section-title">Overview</div>
             <a class="nav-item active" data-screen="dashboard">
-                <span class="icon">📊</span> Executive Dashboard
-            </a>
-            <a class="nav-item" data-screen="test-console">
-                <span class="icon">💬</span> WhatsApp Simulator
+                <span class="icon">📊</span> Executive Desk
             </a>
 
-            <div class="nav-section-title">Restaurant Management</div>
+            <div class="nav-section-title">Operations</div>
             <a class="nav-item" data-screen="restaurant">
                 <span class="icon">🏪</span> Cafe Profile
             </a>
             <a class="nav-item" data-screen="menu">
-                <span class="icon">📋</span> Menu & Inventory
+                <span class="icon">📋</span> Menu Catalog
             </a>
             <a class="nav-item" data-screen="faq">
-                <span class="icon">❓</span> FAQ Knowledge
+                <span class="icon">❓</span> FAQ Base
             </a>
 
-            <div class="nav-section-title">AI Engine & Rules</div>
+            <div class="nav-section-title">AI Engine</div>
             <a class="nav-item" data-screen="n8n" data-stage="stage-4-rules" onclick="App.navigateToStage('n8n','stage-4-rules'); return false;">
-                <span class="icon">🤖</span> AI Prompt Rules (1-6)
+                <span class="icon">🤖</span> Prompt Rules
             </a>
             <a class="nav-item" data-screen="n8n" data-stage="stage-2-memory" onclick="App.navigateToStage('n8n','stage-2-memory'); return false;">
-                <span class="icon">🧠</span> Context Window
+                <span class="icon">🧠</span> Memory Window
             </a>
 
-            <div class="nav-section-title">Integrations & Workflows</div>
+            <div class="nav-section-title">Integrations</div>
             <a class="nav-item" data-screen="n8n" data-stage="stage-1-whatsapp" onclick="App.navigateToStage('n8n','stage-1-whatsapp'); return false;">
                 <span class="icon">📱</span> WhatsApp Cloud
             </a>
@@ -127,15 +204,18 @@
                 <span class="icon">📑</span> Google Sheets
             </a>
             <a class="nav-item" data-screen="n8n">
-                <span class="icon">⚙️</span> n8n Workflow & Multi-Store
+                <span class="icon">⚙️</span> n8n Setup
+            </a>
+            <a class="nav-item" data-screen="test-console">
+                <span class="icon">💬</span> Chat Console
             </a>
 
             <div class="nav-section-title">Diagnostics</div>
             <a class="nav-item" data-screen="demo-control">
-                <span class="icon">🧪</span> Fault Simulation
+                <span class="icon">🧪</span> Fault Desk
             </a>
             <a class="nav-item" data-screen="audit">
-                <span class="icon">📜</span> Audit Telemetry
+                <span class="icon">📜</span> Audit Logs
             </a>
 
             <!-- PINNED BOTTOM-LEFT LOGOUT WIDGET -->
@@ -159,7 +239,7 @@
             <!-- SCREEN 01: EXECUTIVE DASHBOARD (CFO LEVEL) -->
             <section id="screen-dashboard" class="screen-view active">
                 <div class="section-header">
-                    <div class="section-title">📊 CFO Executive Dashboard & Telemetry</div>
+                    <div class="section-title">📊 Executive Desk</div>
                     <div class="btn-group">
                         <button class="btn btn-secondary" onclick="App.loadDashboardData()">🔄 Refresh Financials</button>
                     </div>
@@ -205,8 +285,18 @@
                 </div>
 
                 <!-- EXPANDABLE ORDERS TABLE -->
-                <div class="section-header" style="margin-top: 18px;">
-                    <div class="section-title">🧾 Real-Time Order Management (Expand for Full Details)</div>
+                <div class="section-header" style="margin-top: 18px; flex-wrap: wrap; gap: 8px;">
+                    <div class="section-title">🧾 Orders</div>
+                    <div class="btn-group" style="align-items: center; gap: 8px;">
+                        <input type="text" id="order-search" placeholder="Search orders (code, customer, item)..." style="width: 200px;" oninput="App.filterOrders()">
+                        <select id="order-status-filter" class="rich-select" onchange="App.filterOrders()" title="Filter orders by status">
+                            <option value="ALL">All Statuses</option>
+                            <option value="Confirmed">Confirmed / Accepted</option>
+                            <option value="In Progress">In Progress / Cooking</option>
+                            <option value="Delivered">Delivered / Completed</option>
+                            <option value="Rejected">Rejected / Cancelled</option>
+                        </select>
+                    </div>
                 </div>
                 <div class="table-container">
                     <table>
@@ -233,7 +323,7 @@
             <!-- SCREEN 02: CAFE PROFILE -->
             <section id="screen-restaurant" class="screen-view">
                 <div class="section-header">
-                    <div class="section-title">🏪 jDroid-X- CafeMenu Profile Configuration</div>
+                    <div class="section-title">🏪 Cafe Profile</div>
                 </div>
                 <div class="card">
                     <form id="form-restaurant">
@@ -247,8 +337,16 @@
                                 <input type="text" id="rest-hours" value="09:00 AM - 11:00 PM" required>
                             </div>
                             <div class="form-group">
-                                <label for="rest-contact">Owner / Desk Contact *</label>
+                                <label for="rest-contact">Desk Contact *</label>
                                 <input type="text" id="rest-contact" value="+95 1224567890" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="rest-owner-name">Owner Name</label>
+                                <input type="text" id="rest-owner-name" value="Jitendra G.">
+                            </div>
+                            <div class="form-group">
+                                <label for="rest-owner-phone">Owner Direct Phone</label>
+                                <input type="text" id="rest-owner-phone" value="+91 9876543210">
                             </div>
                             <div class="form-group">
                                 <label for="rest-currency">Currency Code</label>
@@ -258,14 +356,32 @@
                                 <label for="rest-symbol">Currency Symbol</label>
                                 <input type="text" id="rest-symbol" value="₹">
                             </div>
-                            <div class="form-group" style="justify-content: flex-end;">
-                                <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
-                                    <input type="checkbox" id="rest-delivery" checked> Enable Home Delivery
+                            <div class="form-group" style="justify-content: flex-end; align-items: center; display: flex; gap: 10px;">
+                                <label for="rest-delivery" style="margin-bottom: 0; cursor: pointer; font-size: 12.5px;">Home Delivery</label>
+                                <label class="switch-ui" title="Toggle Home Delivery (On / Off)">
+                                    <input type="checkbox" id="rest-delivery" checked>
+                                    <span class="switch-slider"></span>
                                 </label>
                             </div>
                             <div class="form-group full-width">
+                                <label for="rest-address">Street Address &amp; Location</label>
+                                <input type="text" id="rest-address" value="123 Marine Drive, Nariman Point, Mumbai 400021">
+                            </div>
+                            <div class="form-group">
+                                <label for="rest-location-url">Google Maps URL</label>
+                                <input type="text" id="rest-location-url" value="https://maps.google.com/?q=Mumbai">
+                            </div>
+                            <div class="form-group">
+                                <label for="rest-fssai">FSSAI / Tax ID</label>
+                                <input type="text" id="rest-fssai" value="11521000000123">
+                            </div>
+                            <div class="form-group full-width">
+                                <label for="rest-cuisines">Cuisine Types &amp; Tags</label>
+                                <input type="text" id="rest-cuisines" value="Street Food, Beverages, Fast Food">
+                            </div>
+                            <div class="form-group full-width">
                                 <label for="rest-welcome">Rule 1 Welcome Greeting Message *</label>
-                                <textarea id="rest-welcome" rows="4" required></textarea>
+                                <textarea id="rest-welcome" rows="3" required></textarea>
                             </div>
                         </div>
                         <div style="margin-top: 14px;">
@@ -275,18 +391,35 @@
                 </div>
             </section>
 
-            <!-- SCREEN 03: MENU & INVENTORY (WITH BULK CSV UPLOAD) -->
+            <!-- SCREEN 03: MENU & INVENTORY (WITH 3D CARD FLIPPER & BULK CSV UPLOAD) -->
             <section id="screen-menu" class="screen-view">
                 <div class="section-header">
-                    <div class="section-title">📋 Cafe Menu & Stock Inventory</div>
-                    <div class="btn-group">
-                        <input type="text" id="menu-search" placeholder="Search menu items..." style="width: 180px;">
-                        <button class="btn btn-secondary" id="btn-download-template" onclick="App.downloadMenuTemplate()">📥 Download Template</button>
-                        <button class="btn btn-secondary" id="btn-open-bulk-menu" onclick="App.openBulkModal()">📤 Bulk Upload CSV</button>
+                    <div class="section-title">📋 Menu Catalog</div>
+                    <div class="btn-group" style="flex-wrap: wrap; gap: 8px; align-items: center;">
+                        <!-- SEGMENTED TOGGLE (LEFT / RIGHT): TABLE VIEW VS 3D CARD FLIPPER -->
+                        <div class="segmented-toggle" id="menu-view-toggle" title="Switch layout: Table View vs 3D Card Flipper">
+                            <button class="segmented-btn active" id="btn-view-table" onclick="App.setMenuViewMode('table')">📋 Table</button>
+                            <button class="segmented-btn" id="btn-view-flipper" onclick="App.setMenuViewMode('flipper')">🎴 3D Cards</button>
+                        </div>
+
+                        <!-- RICH LIST BOX / DROPDOWN: CATEGORY FILTER WITH DYNAMIC COUNTS -->
+                        <div class="rich-listbox-container">
+                            <select id="menu-category-filter" class="rich-select" onchange="App.filterMenuByCategory(this.value)" title="Filter by food category">
+                                <option value="ALL">All Categories</option>
+                                <option value="Snacks">Snacks</option>
+                                <option value="Beverages">Beverages</option>
+                            </select>
+                        </div>
+
+                        <input type="text" id="menu-search" placeholder="Search food items..." style="width: 160px;">
+                        <button class="btn btn-secondary" id="btn-download-template" onclick="App.downloadMenuTemplate()">📥 Template</button>
+                        <button class="btn btn-secondary" id="btn-open-bulk-menu" onclick="App.openBulkModal()">📤 Bulk CSV</button>
                         <button class="btn btn-primary" id="btn-open-add-menu">+ Add Item</button>
                     </div>
                 </div>
-                <div class="table-container">
+
+                <!-- VIEW 1: INTERACTIVE TABLE CONTAINER -->
+                <div class="table-container" id="menu-table-container">
                     <table>
                         <thead>
                             <tr>
@@ -304,12 +437,17 @@
                         </tbody>
                     </table>
                 </div>
+
+                <!-- VIEW 2: 3D CARD FLIPPER GRID -->
+                <div id="menu-flipper-grid" class="flipper-grid" style="display: none;">
+                    <!-- Populated dynamically via App.renderMenuFlipperCards() -->
+                </div>
             </section>
 
             <!-- SCREEN 04: FAQ -->
             <section id="screen-faq" class="screen-view">
                 <div class="section-header">
-                    <div class="section-title">❓ Restaurant FAQs (Knowledge Base)</div>
+                    <div class="section-title">❓ FAQ Base</div>
                     <div class="btn-group">
                         <input type="text" id="faq-search" placeholder="Search FAQs..." style="width: 180px;">
                         <button class="btn btn-primary" id="btn-open-add-faq">+ Add FAQ</button>
@@ -338,7 +476,7 @@
             <!-- ============================================================ -->
             <section id="screen-n8n" class="screen-view">
                 <div class="section-header">
-                    <div class="section-title">⚙️ n8n Workflow Pipeline — Chronological Configuration (:5678)</div>
+                    <div class="section-title">⚙️ n8n Setup</div>
                     <div class="btn-group">
                         <button type="button" class="btn btn-outline" id="btn-force-n8n-sync" onclick="App.syncN8nWorkflow()" style="border-color: var(--brand-primary); color: var(--brand-primary); font-weight: 600;">🔄 Force Sync &amp; Push to n8n</button>
                         <a href="http://localhost:5678/workflow/USdZGa2vqGuUstP7" target="_blank" class="btn btn-secondary">Open Canvas in n8n ↗</a>
@@ -362,6 +500,22 @@
                         <div class="pipeline-stage-chevron">▶</div>
                     </div>
                     <div class="pipeline-stage-body">
+                        <!-- n8n Webhook Path Config (editable — used by WhatsApp Simulator) -->
+                        <div style="background: rgba(37, 211, 102, 0.06); border: 1px solid rgba(37, 211, 102, 0.25); border-radius: 8px; padding: 14px 16px; margin-bottom: 16px;">
+                            <div style="font-weight: 700; font-size: 13px; color: var(--brand-primary); margin-bottom: 10px;">🔗 n8n Webhook Path (Editable — Used by Simulator &amp; Incoming Messages)</div>
+                            <div class="card-grid" style="grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 0;">
+                                <div class="form-group">
+                                    <label for="n8n-cfg-webhook-path">Webhook Path (n8n Trigger Node)</label>
+                                    <input type="text" id="n8n-cfg-webhook-path" value="whatsapp-restaurant" placeholder="e.g. whatsapp-restaurant" style="font-family: var(--font-mono); font-weight: 600;">
+                                    <span style="font-size: 11px; color: var(--text-dim);">Path segment after <code>/webhook/</code>. Must match your n8n Webhook Trigger node path. WhatsApp Simulator will POST to this URL.</span>
+                                </div>
+                                <div class="form-group">
+                                    <label>Resolved Webhook URL (Live Preview)</label>
+                                    <div style="background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 6px; padding: 8px 12px; font-family: var(--font-mono); font-size: 12px; color: var(--brand-primary);" id="n8n-webhook-url-preview">http://localhost:5678/webhook/whatsapp-restaurant</div>
+                                    <span style="font-size: 11px; color: var(--text-dim); margin-top: 4px; display: block;">Simulator &amp; n8n runtime will call this endpoint for every inbound message.</span>
+                                </div>
+                            </div>
+                        </div>
                         <div class="card-grid" style="grid-template-columns: 1fr 1fr; margin-bottom: 0;">
                             <div>
                                 <div class="form-group">
@@ -402,10 +556,12 @@
                     </div>
                     <div class="pipeline-stage-body">
                         <div style="max-width: 600px;">
-                            <div class="form-group">
-                                <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
-                                    <input type="checkbox" id="mem-enabled" checked> Enable Conversation Memory Context
+                            <div class="form-group" style="display: flex; align-items: center; gap: 10px;">
+                                <label class="switch-ui" title="Toggle Conversation Memory Context (On / Off)">
+                                    <input type="checkbox" id="mem-enabled" checked>
+                                    <span class="switch-slider"></span>
                                 </label>
+                                <label for="mem-enabled" style="margin-bottom: 0; cursor: pointer; font-size: 13px;">Enable Conversation Memory Context</label>
                             </div>
                             <div class="form-group">
                                 <label for="mem-type">Memory Buffer Type</label>
@@ -416,7 +572,7 @@
                             </div>
                             <div class="form-group">
                                 <label for="n8n-cfg-memory-window">Context Memory Window (Interaction Turns)</label>
-                                <input type="number" id="n8n-cfg-memory-window" min="2" max="50" value="10">
+                                <input type="number" id="n8n-cfg-memory-window" min="2" max="100" value="50">
                                 <span style="font-size:11px; color:var(--text-dim);">Controls how many past customer interactions are retained in working memory.</span>
                             </div>
                             <div class="form-group">
@@ -449,9 +605,9 @@
                         <div class="form-group">
                             <label>Google Gemini Model Selection</label>
                             <select id="n8n-cfg-model-name">
-                                <option value="models/gemini-1.5-flash">models/gemini-1.5-flash (Fast &amp; Cost-Effective)</option>
+                                <option value="models/gemini-2.5-flash" selected>models/gemini-2.5-flash (Recommended — Low Latency)</option>
+                                <option value="models/gemini-1.5-flash">models/gemini-1.5-flash (Standard)</option>
                                 <option value="models/gemini-1.5-pro">models/gemini-1.5-pro (High Reasoning)</option>
-                                <option value="models/gemini-2.0-flash">models/gemini-2.0-flash (Next-Gen)</option>
                             </select>
                         </div>
                         <div class="form-group">
@@ -636,7 +792,7 @@
                                 <div style="font-size: 13px; line-height: 1.8;">
                                     <div><strong>Target Workflow:</strong> <span id="n8n-workflow-name">CafeMenu Whatsapp</span></div>
                                     <div><strong>Workflow ID:</strong> <code>USdZGa2vqGuUstP7</code></div>
-                                    <div><strong>Webhook URL:</strong> <code id="n8n-webhook-display">http://localhost:5678/webhook/whatsapp-restaurant</code></div>
+                                    <div><strong>Webhook URL:</strong> <code id="n8n-webhook-display">http://localhost:5678/webhook/whatsapp-restaurant</code> <button type="button" class="btn btn-secondary" style="padding:2px 8px; font-size:10.5px; margin-left:6px;" onclick="App.navigateToStage('n8n','stage-1-whatsapp')">Edit Path ✏️</button></div>
                                     <div><strong>Sync State:</strong> <span id="n8n-sync-status-badge" class="badge badge-success">SYNCED 🟢</span></div>
                                     <div><strong>Version:</strong> <span id="n8n-version-counter">v5</span></div>
                                     <div><strong>Nodes:</strong> <span id="n8n-node-count">7 Nodes</span></div>
@@ -672,7 +828,7 @@
             <!-- SCREEN 10: DEMO CONTROLS -->
             <section id="screen-demo-control" class="screen-view">
                 <div class="section-header">
-                    <div class="section-title">🧪 Diagnostics & Fault Injection Controls</div>
+                    <div class="section-title">🧪 Fault Desk</div>
                 </div>
 
                 <div class="card-grid">
@@ -711,10 +867,42 @@
             <!-- SCREEN 11: TEST CONSOLE & WHATSAPP SIMULATOR -->
             <section id="screen-test-console" class="screen-view">
                 <div class="section-header">
-                    <div class="section-title">💬 WhatsApp Simulator & Live Technical Trace</div>
+                    <div class="section-title">💬 Chat Console</div>
                     <div class="btn-group">
                         <button class="btn btn-secondary" id="btn-reset-chat-session">Reset Session Context</button>
                     </div>
+                </div>
+
+                <!-- N8N WORKFLOW ACTIVATION BANNER -->
+                <div id="n8n-activation-banner" style="display:none; align-items: center; gap: 10px; background: rgba(245,158,11,0.1); border: 1.5px solid rgba(245,158,11,0.4); border-radius: 8px; padding: 10px 14px; margin-bottom: 10px; font-size: 12px;">
+                    <span style="font-size:16px;">⚠️</span>
+                    <div style="flex:1;">
+                        <strong style="color:#f59e0b;">n8n Workflow Not Active</strong>
+                        <span style="color:var(--text-muted); margin-left:6px;">Simulator is running in Local Mock AI mode. To use Google Sheets & Gemini AI, activate the workflow in n8n.</span>
+                    </div>
+                    <button class="btn btn-primary" style="padding:4px 12px; font-size:11px; white-space:nowrap;" onclick="App.activateN8nWorkflow()" id="btn-activate-workflow">⚡ Activate Workflow</button>
+                    <a href="http://localhost:5678/workflow/USdZGa2vqGuUstP7" target="_blank" class="btn btn-secondary" style="padding:4px 10px; font-size:11px; white-space:nowrap;">Open n8n ↗</a>
+                </div>
+
+                <!-- INGRESS SENDER ID IDENTIFIER -->
+                <div style="display:flex; align-items:center; gap:10px; margin-bottom:12px; font-size:12px; background:var(--bg-secondary); border:1px solid var(--border-color); padding:8px 12px; border-radius:6px; flex-wrap:wrap;">
+                    <span style="font-weight:700; color:var(--text-muted);">Ingress Sender ID:</span>
+                    <select id="sim-sender-id" class="rich-select" style="font-size:11.5px; padding:4px 10px; font-family:var(--font-mono);" onchange="App.setSessionSenderId(this.value)">
+                        <option value="1111111111" selected>1111111111 — App Webhook (Default)</option>
+                        <option value="0000000000">0000000000 — n8n Chat Node</option>
+                        <option value="919876543210">919876543210 — WhatsApp Customer</option>
+                    </select>
+                    <span style="font-size:11px; color:var(--text-dim);">(Isolated 50-turn number-based memory per sender ID)</span>
+                </div>
+
+                <!-- WEBHOOK ROUTING STATUS BAR -->
+                <div style="display: flex; align-items: center; gap: 12px; background: rgba(37, 211, 102, 0.06); border: 1px solid rgba(37, 211, 102, 0.2); border-radius: 8px; padding: 10px 14px; margin-bottom: 12px; font-size: 12px;">
+                    <span style="font-weight: 700; color: var(--text-muted); white-space: nowrap;">🔗 Webhook Routing:</span>
+                    <div style="flex: 1; font-family: var(--font-mono); color: var(--brand-primary); font-size: 11.5px;">
+                        <span id="sim-active-webhook-url">http://localhost:5678/webhook/whatsapp-restaurant</span>
+                    </div>
+                    <span id="sim-webhook-status" style="font-size: 11px; color: var(--text-dim); white-space: nowrap;">Ready</span>
+                    <button class="btn btn-secondary" style="padding: 3px 8px; font-size: 10.5px; white-space: nowrap;" onclick="App.navigateTo('n8n'); setTimeout(() => App.navigateToStage('n8n', 'stage-1-whatsapp'), 100);">Edit Webhook ✏️</button>
                 </div>
 
                 <!-- Quick Query Pills matching Images 1 & 2 -->
@@ -776,7 +964,7 @@
             <!-- SCREEN 12: AUDIT & EVENT LOG -->
             <section id="screen-audit" class="screen-view">
                 <div class="section-header">
-                    <div class="section-title">📜 Audit Trail & System Telemetry Log</div>
+                    <div class="section-title">📜 Audit Logs</div>
                     <div class="btn-group">
                         <button class="btn btn-secondary" onclick="App.loadAuditLogs()">Refresh Logs</button>
                         <button class="btn btn-danger" onclick="API.clearAuditLogs().then(() => App.loadAuditLogs())">Clear</button>
@@ -901,7 +1089,160 @@
         </div>
     </div>
 
-    <script src="js/mock-api.js"></script>
+    <!-- MODAL: MULTI-OPTION ORDER ACTION DIALOG -->
+    <div class="modal-backdrop" id="modal-order-action">
+        <div class="modal-dialog">
+            <div class="section-header">
+                <div class="section-title">⚡ Quick Action: <span id="modal-order-code" style="color:var(--brand-primary);"></span></div>
+                <button class="btn btn-secondary" onclick="App.closeOrderActionModal()">✕</button>
+            </div>
+            <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 12px;">
+                Select an operational action to execute on this order with closed-loop sync:
+            </p>
+            <div class="modal-options-grid" id="order-action-options">
+                <label class="modal-option-card selected" onclick="App.selectOrderAction('STATUS_CONFIRMED', this)">
+                    <input type="radio" name="order-action-radio" value="STATUS_CONFIRMED" class="modal-option-radio" checked>
+                    <div>
+                        <div style="font-weight:600; font-size:12.5px; color:var(--text-main);">🍳 Mark as Confirmed (In Kitchen)</div>
+                        <div style="font-size:11px; color:var(--text-dim);">Kitchen begins order preparation immediately.</div>
+                    </div>
+                </label>
+                <label class="modal-option-card" onclick="App.selectOrderAction('STATUS_COMPLETED', this)">
+                    <input type="radio" name="order-action-radio" value="STATUS_COMPLETED" class="modal-option-radio">
+                    <div>
+                        <div style="font-weight:600; font-size:12.5px; color:var(--text-main);">✅ Mark as Completed &amp; Delivered</div>
+                        <div style="font-size:11px; color:var(--text-dim);">Finalizes delivery and updates CFO dashboard revenue.</div>
+                    </div>
+                </label>
+                <label class="modal-option-card" onclick="App.selectOrderAction('PAYMENT_PAID', this)">
+                    <input type="radio" name="order-action-radio" value="PAYMENT_PAID" class="modal-option-radio">
+                    <div>
+                        <div style="font-weight:600; font-size:12.5px; color:var(--text-main);">💳 Confirm Payment Received (Cash/UPI)</div>
+                        <div style="font-size:11px; color:var(--text-dim);">Clears pending receivables from CFO dashboard.</div>
+                    </div>
+                </label>
+                <label class="modal-option-card" onclick="App.selectOrderAction('CANCEL_RESTOCK', this)">
+                    <input type="radio" name="order-action-radio" value="CANCEL_RESTOCK" class="modal-option-radio">
+                    <div>
+                        <div style="font-weight:600; font-size:12.5px; color:#ef4444;">🛑 Rule 5 Cancel Order &amp; Auto-Restock</div>
+                        <div style="font-size:11px; color:var(--text-dim);">Applies Rule 5 cancellation policy and restores stock inventory.</div>
+                    </div>
+                </label>
+            </div>
+            <div style="margin-top: 14px; display:flex; justify-content:flex-end; gap:8px;">
+                <button class="btn btn-secondary" onclick="App.closeOrderActionModal()">Close</button>
+                <button class="btn btn-primary" id="btn-submit-order-action" onclick="App.submitOrderAction()">Apply Action</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: EDIT MENU ITEM -->
+    <div class="modal-backdrop" id="modal-edit-menu">
+        <div class="modal-dialog">
+            <div class="section-header">
+                <div class="section-title">Edit Menu Item: <span id="edit-menu-code-title" style="color:var(--brand-primary);"></span></div>
+                <button class="btn btn-secondary" onclick="App.closeEditMenuModal()">✕</button>
+            </div>
+            <form id="form-edit-menu">
+                <input type="hidden" id="edit-menu-id">
+                <div class="form-group">
+                    <label for="edit-menu-code">Item Code *</label>
+                    <input type="text" id="edit-menu-code" required>
+                </div>
+                <div class="form-group">
+                    <label for="edit-menu-name">Food Item Name *</label>
+                    <input type="text" id="edit-menu-name" required>
+                </div>
+                <div class="form-group">
+                    <label for="edit-menu-category">Category</label>
+                    <input type="text" id="edit-menu-category">
+                </div>
+                <div class="form-group">
+                    <label for="edit-menu-price">Price (<span class="dynamic-currency-symbol">₹</span>) *</label>
+                    <input type="number" id="edit-menu-price" step="0.5" required>
+                </div>
+                <div class="form-group">
+                    <label for="edit-menu-qty">Stock Quantity *</label>
+                    <input type="number" id="edit-menu-qty" required>
+                </div>
+                <div class="form-group">
+                    <label for="edit-menu-status">Availability Status</label>
+                    <select id="edit-menu-status">
+                        <option value="AVAILABLE">AVAILABLE</option>
+                        <option value="OUT_OF_STOCK">OUT_OF_STOCK</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="edit-menu-desc">Description</label>
+                    <input type="text" id="edit-menu-desc">
+                </div>
+                <div style="margin-top: 14px; display:flex; justify-content:flex-end; gap:8px;">
+                    <button type="button" class="btn btn-secondary" onclick="App.closeEditMenuModal()">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Update Item</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL: EDIT FAQ -->
+    <div class="modal-backdrop" id="modal-edit-faq">
+        <div class="modal-dialog">
+            <div class="section-header">
+                <div class="section-title">Edit Restaurant FAQ</div>
+                <button class="btn btn-secondary" onclick="App.closeEditFAQModal()">✕</button>
+            </div>
+            <form id="form-edit-faq">
+                <input type="hidden" id="edit-faq-id">
+                <div class="form-group">
+                    <label for="edit-faq-category">Category</label>
+                    <input type="text" id="edit-faq-category">
+                </div>
+                <div class="form-group">
+                    <label for="edit-faq-question">Question *</label>
+                    <input type="text" id="edit-faq-question" required>
+                </div>
+                <div class="form-group">
+                    <label for="edit-faq-answer">Answer *</label>
+                    <textarea id="edit-faq-answer" rows="3" required></textarea>
+                </div>
+                <div style="margin-top: 14px; display:flex; justify-content:flex-end; gap:8px;">
+                    <button type="button" class="btn btn-secondary" onclick="App.closeEditFAQModal()">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Update FAQ</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL: CONFIRMATION DIALOG (HUMAN-IN-THE-LOOP UX) -->
+    <div class="modal-backdrop" id="modal-confirm-dialog">
+        <div class="modal-dialog" style="max-width: 440px;">
+            <div class="section-header">
+                <div class="section-title" id="confirm-dialog-title">⚠️ Confirmation Required</div>
+                <button class="btn btn-secondary" onclick="App.closeConfirmModal()">✕</button>
+            </div>
+            <div id="confirm-dialog-message" style="font-size: 13.5px; color: var(--text-main); margin: 16px 0; line-height: 1.5;">
+                Are you sure you want to proceed with this action?
+            </div>
+            <div style="display:flex; justify-content:flex-end; gap:8px;">
+                <button type="button" class="btn btn-secondary" id="confirm-dialog-cancel-btn" onclick="App.closeConfirmModal()">Cancel</button>
+                <button type="button" class="btn btn-danger" id="confirm-dialog-proceed-btn">Confirm Delete</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- SLIDE IN/OUT NOTIFICATION DRAWER (BOTTOM-RIGHT) -->
+    <div id="notification-drawer" class="notification-drawer" role="alert">
+        <div class="drawer-header">
+            <div class="drawer-title" id="drawer-title">🔔 Operations Alert</div>
+            <button class="toast-close" onclick="App.closeNotificationDrawer()">✕</button>
+        </div>
+        <div class="drawer-body" id="drawer-body">New order received from WhatsApp customer.</div>
+        <div class="drawer-actions" id="drawer-actions">
+            <button class="btn btn-secondary" onclick="App.closeNotificationDrawer()" style="padding: 4px 10px; font-size: 11px;">Dismiss</button>
+            <button class="btn btn-primary" id="drawer-action-btn" style="padding: 4px 12px; font-size: 11px;">View Order</button>
+        </div>
+    </div>
+
     <script src="js/api.js"></script>
     <script src="js/app.js"></script>
 </body>

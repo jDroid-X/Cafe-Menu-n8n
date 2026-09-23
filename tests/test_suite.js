@@ -64,7 +64,7 @@ async function runTests() {
 
     // T03: Rule 1: First Message Greeting with Options (Image 1)
     await test('T03: Rule 1 Greeting ("Hi" with order/FAQ/stock options)', async () => {
-        const res = await simulator.processMessage({ text: 'Hi' });
+        const res = await simulator.processMessage({ text: 'Hi', skipN8n: true });
         assert.strictEqual(res.agentDecision, 'RULE_1_GREETING');
         assert.ok(res.reply.includes('Welcome to *jDroid-X- CafeMenu*'), 'Must welcome to jDroid-X- CafeMenu');
         assert.ok(res.reply.includes('Place an order'), 'Must include Place an order option');
@@ -74,21 +74,21 @@ async function runTests() {
 
     // T04: FAQ Query (Image 1 Rule 3)
     await test('T04: Rule 3 FAQ Lookup ("What are your opening hours?")', async () => {
-        const res = await simulator.processMessage({ text: 'What are your opening hours?' });
+        const res = await simulator.processMessage({ text: 'What are your opening hours?', skipN8n: true });
         assert.strictEqual(res.agentDecision, 'FAQ_LOOKUP');
         assert.ok(res.reply.includes('9:00 AM to 11:00 PM'), 'FAQ answer must reflect configured timing');
     });
 
     // T05: Order Missing Quantity (Image 1 Rule 2)
     await test('T05: Rule 2 Order Missing Quantity ("I want Vada Pav")', async () => {
-        const res = await simulator.processMessage({ text: 'I want Vada Pav' });
+        const res = await simulator.processMessage({ text: 'I want Vada Pav', skipN8n: true });
         assert.strictEqual(res.agentDecision, 'ORDER_MISSING_QUANTITY');
         assert.ok(res.reply.toLowerCase().includes('how many'), 'Agent must ask for missing quantity');
     });
 
     // T06: Order Complete (Image 1 Rule 2)
     await test('T06: Rule 2 Complete Order Capture ("MBS Coding, two Vada Pav")', async () => {
-        const res = await simulator.processMessage({ text: 'MBS Coding, two Vada Pav' });
+        const res = await simulator.processMessage({ text: 'MBS Coding, two Vada Pav', skipN8n: true });
         assert.strictEqual(res.agentDecision, 'ORDER_CONFIRMED_AND_SAVED');
         assert.ok(res.reply.includes('is confirmed ✅'), 'Order confirmation must match Image 1 Rule 2');
         assert.ok(res.toolsCalled.includes('Post Orders'), 'Post Orders tool must be called');
@@ -102,7 +102,7 @@ async function runTests() {
 
     // T07: Out-of-Stock Item Rejection (Image 1 Rule 2)
     await test('T07: Rule 2 Out-of-Stock Rejection ("I want Paneer Tikka Pav")', async () => {
-        const res = await simulator.processMessage({ text: 'I want 2 Paneer Tikka Pav' });
+        const res = await simulator.processMessage({ text: 'I want 2 Paneer Tikka Pav', skipN8n: true });
         assert.strictEqual(res.agentDecision, 'ITEM_OUT_OF_STOCK_REFUSED');
         assert.ok(res.reply.includes('is out of stock ❌'), 'Must output exact out of stock message from Image 1');
         assert.ok(res.reply.includes('Available options:'), 'Must list available options');
@@ -110,7 +110,7 @@ async function runTests() {
 
     // T08: Rule 4 Check Stock Inquiry (Image 1)
     await test('T08: Rule 4 Check Stock ("Check stock Vada Pav")', async () => {
-        const res = await simulator.processMessage({ text: 'Check stock Vada Pav' });
+        const res = await simulator.processMessage({ text: 'Check stock Vada Pav', skipN8n: true });
         assert.strictEqual(res.agentDecision, 'CHECK_STOCK_ITEM_FOUND');
         assert.ok(res.reply.includes('Vada Pav'), 'Stock check must mention item');
         assert.ok(res.reply.includes('available at *₹30* ✅'), 'Stock check must report quantity and price');
@@ -118,7 +118,7 @@ async function runTests() {
 
     // T09: Rule 4 Check Order Status (Image 1)
     await test('T09: Rule 4 Check Order ("Check order ORD-882101")', async () => {
-        const res = await simulator.processMessage({ text: 'Check order ORD-882101' });
+        const res = await simulator.processMessage({ text: 'Check order ORD-882101', skipN8n: true });
         assert.strictEqual(res.agentDecision, 'CHECK_ORDER_FOUND');
         assert.ok(res.reply.includes('ORD-882101'), 'Must identify order code');
         assert.ok(res.reply.includes('Delivered'), 'Must report order status');
@@ -126,7 +126,7 @@ async function runTests() {
 
     // T10: Rule 5 Cancel Order Polite Refusal (Image 1 & 2)
     await test('T10: Rule 5 Cancel Order Policy ("I want to cancel my order")', async () => {
-        const res = await simulator.processMessage({ text: 'I want to cancel my order' });
+        const res = await simulator.processMessage({ text: 'I want to cancel my order', skipN8n: true });
         assert.strictEqual(res.agentDecision, 'CANCEL_ORDER_REFUSED');
         assert.ok(res.reply.includes('Sorry 🙏 I cannot cancel orders directly'), 'Must output polite refusal verbatim from Image 1 & 2');
         assert.ok(res.reply.includes('Please call the restaurant owner first'), 'Must direct customer to owner');
@@ -136,8 +136,8 @@ async function runTests() {
     // T11: Conversation Context Memory
     await test('T11: Multi-Turn Context Memory', async () => {
         const sessionKey = 'test_session_user_88';
-        await simulator.processMessage({ text: 'Hi, my name is Priya Sharma', phone: sessionKey });
-        const res = await simulator.processMessage({ text: 'I want two Misal Pav', phone: sessionKey });
+        await simulator.processMessage({ text: 'Hi, my name is Priya Sharma', phone: sessionKey, skipN8n: true });
+        const res = await simulator.processMessage({ text: 'I want two Misal Pav', phone: sessionKey, skipN8n: true });
         assert.strictEqual(res.agentDecision, 'ORDER_CONFIRMED_AND_SAVED');
         assert.ok(res.reply.includes('Priya Sharma'), 'Agent must remember customer name from session context');
     });
@@ -145,7 +145,7 @@ async function runTests() {
     // T12: Simulated Inventory & LLM Failures
     await test('T12: Simulated Failures Graceful Contingency', async () => {
         simulator.setSimulationFlags({ inventoryFailure: true });
-        const invRes = await simulator.processMessage({ text: 'Check stock Vada Pav' });
+        const invRes = await simulator.processMessage({ text: 'Check stock Vada Pav', skipN8n: true });
         assert.strictEqual(invRes.agentDecision, 'CHECK_STOCK_OUT_OF_STOCK');
         simulator.setSimulationFlags({ inventoryFailure: false, llmFailure: true });
 
@@ -220,16 +220,16 @@ async function runTests() {
         assert.ok(pushResult.success, 'Push to n8n must succeed');
 
         // 3. Verify simulator immediately uses the new brand name
-        const simRes = await simulator.processMessage({ text: 'Hi', phone: '919876543210' });
+        const simRes = await simulator.processMessage({ text: 'Hi', phone: '919876543210', skipN8n: true });
         assert.ok(simRes.reply.includes(testBrand), `Greeting must contain updated brand ${testBrand}`);
 
         // 4. Verify Rule 5 cancellation refusal uses the updated phone number
-        const cancelRes = await simulator.processMessage({ text: 'I want to cancel my order', phone: '919876543210' });
+        const cancelRes = await simulator.processMessage({ text: 'I want to cancel my order', phone: '919876543210', skipN8n: true });
         assert.ok(cancelRes.reply.includes(testPhone), `Cancellation must contain updated contact phone ${testPhone}`);
 
         // 5. Restore default brand
         restModel.updateConfig({ restaurant_name: 'jDroid-X- CafeMenu', contact_number: '+95 1224567890' });
-        await syncService.pushToN8n({ restaurant_name: 'jDroid-X- CafeMenu', contact_number: '+95 1224567890' });
+        await syncService.pushToN8n({ restaurant_name: 'jDroid-X- CafeMenu', contact_number: '+95 1224567890', model: 'models/gemini-2.5-flash' });
     });
 
     // T18: Comprehensive 5-Node Settings & Force Sync Verification
@@ -318,7 +318,7 @@ async function runTests() {
         await syncService.pushToN8n({
             restaurant_name: 'jDroid-X- CafeMenu',
             contact_number: '+95 1224567890',
-            model: 'models/gemini-1.5-flash',
+            model: 'models/gemini-2.5-flash',
             temperature: 0.2,
             max_tokens: 450,
             contextWindowLength: 10,
@@ -331,6 +331,21 @@ async function runTests() {
             orders_sheet: 'Orders',
             orders_mapping_mode: 'autoMapInputData'
         });
+    });
+
+    // T19: Live Gemini in n8n Routing & Busy Route Fallback
+    await test('T19: Live Gemini in n8n Routing & Busy Route Fallback', async () => {
+        const liveRes = await simulator.processMessage({ text: 'Hello, what do you have today?' });
+        assert.ok(liveRes.reply, 'Must return a reply');
+        if (liveRes.agentDecision === 'N8N_API') {
+            assert.strictEqual(liveRes.n8nWorkflowActive, true);
+            assert.strictEqual(liveRes.geminiModelActive, true);
+            assert.strictEqual(liveRes.runtimeStatus, 'ONLINE_LIVE');
+        } else {
+            assert.strictEqual(liveRes.agentDecision, 'BUSY_RETRY');
+            assert.strictEqual(liveRes.reply, 'All route is Bussy, Retry after some time');
+            assert.strictEqual(liveRes.runtimeStatus, 'BUSY_RETRY');
+        }
     });
 
     console.log(`

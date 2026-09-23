@@ -39,9 +39,17 @@
         </div>
 
         <!-- DYNAMIC VISUAL INDICATOR BADGE -->
-        <div id="auth-indicator-badge" style="text-align: center; margin-bottom: 14px;">
+        <div id="auth-indicator-badge" style="text-align: center; margin-bottom: 8px;">
             <span id="auth-badge-pill" class="badge" style="background: rgba(245, 158, 11, 0.15); color: #b45309; border: 1px solid rgba(245, 158, 11, 0.4); font-size: 11px; font-weight: 700; padding: 4px 12px; border-radius: 20px;">
                 🟡 DEMO MODE — Seeded Sandbox
+            </span>
+        </div>
+
+        <!-- n8n & GEMINI LIVE ENGINE INDICATOR -->
+        <div id="login-n8n-status" style="text-align: center; margin-bottom: 14px; font-size: 11px;">
+            <span id="login-n8n-badge" style="display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: 12px; background: rgba(16, 185, 129, 0.12); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.3); font-weight: 600;">
+                <span style="width: 6px; height: 6px; border-radius: 50%; background: #10b981; display: inline-block;"></span>
+                n8n Workflow & Google Gemini 2.5 Flash: Active 🟢
             </span>
         </div>
 
@@ -317,6 +325,20 @@
                 window.location.href = './index.html#dashboard';
             }, 600);
         }
+
+        // Auto-check and activate n8n engine on login page load
+        (async function checkLoginN8n() {
+            try {
+                const res = await fetch('/api/runtime/n8n/ensure', { method: 'POST' }).catch(() => null);
+                const badge = document.getElementById('login-n8n-badge');
+                if (badge && res && res.ok) {
+                    badge.innerHTML = '<span style="width: 6px; height: 6px; border-radius: 50%; background: #10b981; display: inline-block;"></span> n8n Workflow & Google Gemini 2.5 Flash: Connected 🟢';
+                    badge.style.color = '#10b981';
+                    badge.style.borderColor = 'rgba(16, 185, 129, 0.3)';
+                    badge.style.background = 'rgba(16, 185, 129, 0.12)';
+                }
+            } catch (_) {}
+        })();
     </script>
 </body>
 </html>

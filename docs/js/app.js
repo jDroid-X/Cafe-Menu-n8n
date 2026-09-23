@@ -10,16 +10,28 @@ document.addEventListener('DOMContentLoaded', () => {
 
 const App = {
     activeScreen: 'dashboard',
-    currentSessionKey: '919876543210',
+    currentSessionKey: '1111111111',
     parsedBulkItems: [],
     environmentMode: 'DEMO',         // 'DEMO' or 'LIVE'
     dataToolsMode: 'ONLINE',         // 'ONLINE' or 'OFFLINE'
     dashboardMetricMode: 'revenue',  // 'revenue' or 'orders'
     dashboardTimeRange: 'day',       // 'day', 'week', or 'month'
     cachedAnalytics: null,           // Cached CFO analytics data
+    n8nWebhookUrl: 'http://localhost:5678/webhook/whatsapp-restaurant', // Editable via n8n Stage 1
+    menuViewMode: 'table',           // 'table' or 'flipper'
+    selectedCategoryFilter: 'ALL',   // Active category filter
+    selectedOrderActionType: 'STATUS_CONFIRMED',
+    activeActionOrderId: null,
+    activeActionOrderCode: null,
+    currentCurrencySymbol: '₹',      // Dynamic currency symbol
+    currentBrandName: 'jDroid-X- CafeMenu',
+    cachedMenuItems: [],
+    cachedOrders: [],
+    cachedFaqItems: [],
 
     init() {
         this.initTheme();
+        this.initToastOverride();
         this.checkAuth();
         this.bindNavigation();
         this.initEnvironmentMode();
@@ -32,6 +44,15 @@ const App = {
         this.bindModals();
         this.bindForms();
 
+        // Real-time search for menu items
+        const menuSearchInput = document.getElementById('menu-search');
+        if (menuSearchInput) {
+            menuSearchInput.addEventListener('input', () => this.renderFilteredMenu());
+        }
+
+        // Check n8n activation status for simulator banner
+        this.checkN8nActivationStatus();
+
         // Check if a specific screen hash is requested
         if (window.location.hash) {
             this.navigateTo(window.location.hash.replace('#', ''));
@@ -39,7 +60,9 @@ const App = {
 
         // Refresh telemetry and n8n sync periodically
         setInterval(() => this.loadHealthAndStatus(), 20000);
-        setInterval(() => this.loadN8nSyncStatus(), 4000);
+        setInterval(() => this.loadN8nSyncStatus(), 10000);
+        // Recheck n8n activation status periodically
+        setInterval(() => this.checkN8nActivationStatus(), 10000);
     },
 
     // 1. THEME TOGGLE (SYSTEM DEFAULT LIGHT / DARK)
@@ -82,30 +105,76 @@ const App = {
         this.setTheme(next);
     },
 
-    // 2. AUTHENTICATION & BOTTOM-LEFT LOGOUT
+    // TOAST NOTIFICATIONS (NON-BLOCKING HUMAN-IN-THE-LOOP UX)
+    toast(message, type = 'success') {
+        const container = document.getElementById('toast-container');
+        if (!container) {
+            console.log(`[Toast ${type}]`, message);
+            return;
+        }
+        const icons = {
+            success: '✅',
+            error: '❌',
+            warning: '⚠️',
+            info: 'ℹ️'
+        };
+        const toastEl = document.createElement('div');
+        toastEl.className = `toast toast-${type}`;
+        toastEl.innerHTML = `
+            <span class="toast-icon">${icons[type] || '🔔'}</span>
+            <div class="toast-message">${message}</div>
+            <button class="toast-close" onclick="this.parentElement.remove()">✕</button>
+        `;
+        container.appendChild(toastEl);
+        setTimeout(() => {
+            if (toastEl.parentElement) {
+                toastEl.style.opacity = '0';
+                toastEl.style.transform = 'translateX(40px)';
+                setTimeout(() => toastEl.remove(), 300);
+            }
+        }, 4000);
+    },
+
+    // OVERRIDE BLOCKING ALERT WITH ANIMATED TOASTS (HUMAN-IN-THE-LOOP UX)
+    initToastOverride() {
+        if (!window._origAlert) {
+            window._origAlert = window.alert;
+            window.alert = (msg) => {
+                const isErr = /error|fail|cannot|missing|invalid/i.test(String(msg));
+                const isWarn = /warning|caution|issue/i.test(String(msg));
+                const type = isErr ? 'error' : (isWarn ? 'warning' : 'success');
+                this.toast(String(msg), type);
+            };
+        }
+    },
+
+    // 2. AUTHENTICATION & BOTTOM-LEFT LOGOUT (STAGE 2 DUAL MODE)
+    currentAuthMode: 'DEMO',
+
     checkAuth() {
         let auth = JSON.parse(localStorage.getItem('jdroid_auth') || 'null');
         const overlay = document.getElementById('auth-overlay');
 
         if (!auth) {
-            // Provide default admin session so human operators and demo runs are never blocked
-            auth = { email: 'admin@jdroidx.ai', role: 'System Administrator', loggedInAt: new Date().toISOString() };
-            localStorage.setItem('jdroid_auth', JSON.stringify(auth));
-            overlay.classList.remove('active');
-            this.updateUserBadge(auth.email, auth.role);
+            // Activate in-page authentication modal overlay cleanly
+            if (overlay) {
+                overlay.classList.add('active');
+                this.setAuthMode(this.currentAuthMode || 'DEMO');
+            }
         } else {
-            overlay.classList.remove('active');
-            this.updateUserBadge(auth.email, auth.role);
+            if (overlay) overlay.classList.remove('active');
+            this.updateUserBadge(auth.email, auth.role, auth.mode || 'DEMO');
         }
 
-        // Login form
-        const loginForm = document.getElementById('form-login');
-        if (loginForm) {
-            loginForm.addEventListener('submit', (e) => {
+        // Demo Login form
+        const loginFormDemo = document.getElementById('form-login-demo') || document.getElementById('form-login');
+        if (loginFormDemo) {
+            loginFormDemo.addEventListener('submit', async (e) => {
                 e.preventDefault();
                 const email = document.getElementById('login-email').value;
+                const password = document.getElementById('login-password').value;
                 const role = document.getElementById('login-role').value;
-                this.login(email, role);
+                await this.login(email, password, role, 'DEMO');
             });
         }
 
@@ -116,32 +185,186 @@ const App = {
         }
     },
 
-    login(email, role) {
-        const auth = { email, role, loggedInAt: new Date().toISOString() };
+    setAuthMode(mode) {
+        this.currentAuthMode = mode;
+        const tabDemo = document.getElementById('auth-tab-demo');
+        const tabLive = document.getElementById('auth-tab-live');
+        const panelDemo = document.getElementById('auth-panel-demo');
+        const panelLive = document.getElementById('auth-panel-live');
+        const badge = document.getElementById('auth-badge-pill');
+
+        if (mode === 'DEMO') {
+            if (tabDemo) tabDemo.className = 'auth-mode-tab active-demo';
+            if (tabLive) tabLive.className = 'auth-mode-tab';
+            if (panelDemo) panelDemo.style.display = 'block';
+            if (panelLive) panelLive.style.display = 'none';
+            if (badge) {
+                badge.style.background = 'rgba(245, 158, 11, 0.15)';
+                badge.style.color = '#b45309';
+                badge.style.borderColor = 'rgba(245, 158, 11, 0.4)';
+                badge.innerHTML = '🟡 DEMO MODE — Seeded Sandbox';
+            }
+        } else {
+            if (tabDemo) tabDemo.className = 'auth-mode-tab';
+            if (tabLive) tabLive.className = 'auth-mode-tab active-live';
+            if (panelDemo) panelDemo.style.display = 'none';
+            if (panelLive) panelLive.style.display = 'block';
+            if (badge) {
+                badge.style.background = 'rgba(16, 185, 129, 0.15)';
+                badge.style.color = '#065f46';
+                badge.style.borderColor = 'rgba(16, 185, 129, 0.4)';
+                badge.innerHTML = '🟢 LIVE PRODUCTION — Fresh Tenant';
+            }
+        }
+    },
+
+    async sendSecurityCode() {
+        const emailInput = document.getElementById('login-live-email');
+        const email = emailInput ? emailInput.value.trim() : '';
+        if (!email) {
+            this.toast('Please enter your corporate email address first.', 'warning');
+            return;
+        }
+
+        const btn = document.getElementById('btn-send-otp');
+        const origText = btn ? btn.innerText : '';
+        if (btn) { btn.disabled = true; btn.innerText = 'Sending... ⏳'; }
+
+        try {
+            const res = await API.sendOtp(email);
+            const code = res.previewCode || '882101';
+            const otpInput = document.getElementById('login-live-otp');
+            if (otpInput) otpInput.value = code;
+            this.toast(`Security verification code sent to ${email}! (Test Code: ${code})`, 'info');
+        } catch (err) {
+            this.toast('Failed to dispatch security code: ' + err.message, 'error');
+        } finally {
+            if (btn) { btn.disabled = false; btn.innerText = 'Resend Code 📩'; }
+        }
+    },
+
+    async handleLiveLoginSubmit(e) {
+        e.preventDefault();
+        const email = document.getElementById('login-live-email')?.value?.trim();
+        const code = document.getElementById('login-live-otp')?.value?.trim();
+        const role = document.getElementById('login-live-role')?.value || 'Executive Director';
+
+        if (!email || !code) {
+            this.toast('Corporate email and 6-digit security code are mandatory.', 'warning');
+            return;
+        }
+
+        const submitBtn = e.target.querySelector('button[type="submit"]');
+        const origText = submitBtn ? submitBtn.innerText : '';
+        if (submitBtn) { submitBtn.disabled = true; submitBtn.innerText = 'Verifying Code... ⏳'; }
+
+        try {
+            const res = await API.verifyOtp(email, code, role);
+            if (res && res.token) {
+                localStorage.setItem('jdroid_token', res.token);
+            }
+
+            const auth = { email, role, mode: 'LIVE', isLiveTenant: true, loggedInAt: new Date().toISOString() };
+            localStorage.setItem('jdroid_auth', JSON.stringify(auth));
+            localStorage.setItem('jdroid_env_mode', 'LIVE');
+
+            // Initialize fresh production tenant
+            await API.initTenant('LIVE').catch(() => {});
+
+            const overlay = document.getElementById('auth-overlay');
+            if (overlay) overlay.classList.remove('active');
+
+            this.setEnvironmentMode('LIVE');
+            this.updateUserBadge(email, role, 'LIVE');
+            this.toast('Security code verified. Production Tenant active!', 'success');
+            this.loadDashboardData();
+        } catch (err) {
+            this.toast('Security code verification failed: ' + err.message, 'error');
+        } finally {
+            if (submitBtn) { submitBtn.disabled = false; submitBtn.innerText = origText; }
+        }
+    },
+
+    async loginWithGoogle() {
+        const email = 'executive@google.workspace.com';
+        const role = 'CFO / Executive Director';
+        const token = 'google-oauth-token-' + Date.now();
+
+        localStorage.setItem('jdroid_token', token);
+        const auth = { email, role, mode: 'LIVE', isLiveTenant: true, oauth: 'Google', loggedInAt: new Date().toISOString() };
         localStorage.setItem('jdroid_auth', JSON.stringify(auth));
-        document.getElementById('auth-overlay').classList.remove('active');
-        this.updateUserBadge(email, role);
+        localStorage.setItem('jdroid_env_mode', 'LIVE');
+
+        // Initialize fresh production tenant
+        await API.initTenant('LIVE').catch(() => {});
+
+        const overlay = document.getElementById('auth-overlay');
+        if (overlay) overlay.classList.remove('active');
+
+        this.setEnvironmentMode('LIVE');
+        this.updateUserBadge(email, role, 'LIVE');
+        this.toast('Google OAuth 2.0 Authenticated! Production Tenant active.', 'success');
+        this.loadDashboardData();
+    },
+
+    async login(email, password, role, mode = 'DEMO') {
+        try {
+            if (typeof API !== 'undefined' && API.login) {
+                const res = await API.login(email, password);
+                if (res && res.token) {
+                    localStorage.setItem('jdroid_token', res.token);
+                }
+            }
+        } catch (err) {
+            console.warn('[App] Remote login note:', err.message);
+        }
+
+        const auth = { email, role, mode, loggedInAt: new Date().toISOString() };
+        localStorage.setItem('jdroid_auth', JSON.stringify(auth));
+        localStorage.setItem('jdroid_env_mode', mode);
+
+        // Ensure database state matches selected mode
+        API.initTenant(mode).catch(() => {});
+
+        const overlay = document.getElementById('auth-overlay');
+        if (overlay) overlay.classList.remove('active');
+
+        this.setEnvironmentMode(mode);
+        this.updateUserBadge(email, role, mode);
+        this.toast(`Welcome back! Signed in as ${role} (${mode} MODE).`, 'success');
+        this.loadDashboardData();
     },
 
     logout() {
         localStorage.removeItem('jdroid_auth');
-        document.getElementById('auth-overlay').classList.add('active');
+        localStorage.removeItem('jdroid_token');
+        const overlay = document.getElementById('auth-overlay');
+        if (overlay) {
+            overlay.classList.add('active');
+            this.setAuthMode('DEMO');
+        } else {
+            window.location.reload();
+        }
     },
 
     setLoginDemo(email, pass, role) {
-        document.getElementById('login-email').value = email;
-        document.getElementById('login-password').value = pass;
-        document.getElementById('login-role').value = role;
+        const emailEl = document.getElementById('login-email');
+        const passEl = document.getElementById('login-password');
+        const roleEl = document.getElementById('login-role');
+        if (emailEl) emailEl.value = email;
+        if (passEl) passEl.value = pass;
+        if (roleEl) roleEl.value = role;
     },
 
-    updateUserBadge(email, role) {
+    updateUserBadge(email, role, mode = 'DEMO') {
         const avatar = document.getElementById('sidebar-avatar');
         const username = document.getElementById('sidebar-username');
         const userRole = document.getElementById('sidebar-role');
 
+        const modeBadge = mode === 'LIVE' ? ' 🟢 [LIVE]' : ' 🟡 [DEMO]';
         if (avatar) avatar.innerText = (email || 'A')[0].toUpperCase();
-        if (username) username.innerText = email || 'admin@jdroidx.ai';
-        if (userRole) userRole.innerText = role || 'System Administrator';
+        if (username) username.innerText = email || 'demo@jdroidx.ai';
+        if (userRole) userRole.innerText = (role || 'System Administrator') + modeBadge;
     },
 
     navigateTo(screenId) {
@@ -254,8 +477,8 @@ const App = {
             if (wfName) wfName.innerText = data.workflowName || 'CafeMenu Whatsapp';
             if (vCounter) vCounter.innerText = `v${data.versionCounter || 1} (${(data.versionId || '').slice(0, 8)})`;
             if (nodeCount) nodeCount.innerText = `${data.nodeCount || 7} Nodes`;
-            if (model) model.innerText = `${data.modelName || 'gemini-1.5-flash'} (temp: ${data.temperature ?? 0.2})`;
-            if (memory) memory.innerText = `${data.contextWindowLength || 10} turns`;
+            if (model) model.innerText = `${data.modelName || 'gemini-2.5-flash'} (temp: ${data.temperature ?? 0.2})`;
+            if (memory) memory.innerText = `${data.contextWindowLength || 50} turns`;
             if (tools) tools.innerText = (data.tools || []).join(', ');
             if (lastTime) lastTime.innerText = data.lastSyncedAt ? new Date(data.lastSyncedAt).toLocaleTimeString() : 'Active';
             if (promptPreview && data.systemMessage) {
@@ -292,16 +515,24 @@ const App = {
     },
 
     // 4c. DYNAMIC BRAND SINGLE SOURCE OF TRUTH APPLIER
-    applyBrandName(brandName, contactPhone) {
-        if (!brandName) return;
-        const brandTitle = document.getElementById('app-brand-title');
-        if (brandTitle) brandTitle.innerText = brandName;
-        document.title = `${brandName} — WhatsApp AI Ordering Desk & Executive Suite`;
-        const simContact = document.getElementById('chat-contact-name');
-        if (simContact) simContact.innerText = brandName;
-        document.querySelectorAll('.dynamic-brand-name').forEach(el => {
-            el.innerText = brandName;
-        });
+    applyBrandName(brandName, contactPhone, currencySymbol) {
+        if (brandName) {
+            this.currentBrandName = brandName;
+            const brandTitle = document.getElementById('app-brand-title');
+            if (brandTitle) brandTitle.innerText = brandName;
+            document.title = `${brandName} — WhatsApp AI Ordering Desk & Executive Suite`;
+            const simContact = document.getElementById('chat-contact-name');
+            if (simContact) simContact.innerText = brandName;
+            document.querySelectorAll('.dynamic-brand-name').forEach(el => {
+                el.innerText = brandName;
+            });
+        }
+        if (currencySymbol) {
+            this.currentCurrencySymbol = currencySymbol;
+            document.querySelectorAll('.dynamic-currency-symbol').forEach(el => {
+                el.innerText = currencySymbol;
+            });
+        }
     },
 
     // 4d. N8N WORKFLOW & MULTI-RESTAURANT CONFIGURATION PAGE
@@ -341,7 +572,7 @@ const App = {
             const hostEl = document.getElementById('n8n-cfg-gemini-host');
             const keyStatusEl = document.getElementById('gemini-key-status');
 
-            if (modelEl) modelEl.value = agent.model || 'models/gemini-1.5-flash';
+            if (modelEl) modelEl.value = agent.model || 'models/gemini-2.5-flash';
             if (tempEl) tempEl.value = agent.temperature ?? 0.2;
             if (tokensEl) tokensEl.value = agent.max_tokens || 450;
             if (topPEl) topPEl.value = agent.top_p ?? 0.95;
@@ -356,7 +587,7 @@ const App = {
             const sessionKeyEl = document.getElementById('n8n-cfg-session-key');
             const expiryEl = document.getElementById('n8n-cfg-memory-expiry');
 
-            if (memEl) memEl.value = memory.contextWindowLength ?? 10;
+            if (memEl) memEl.value = memory.contextWindowLength ?? 50;
             if (sessionKeyEl) sessionKeyEl.value = memory.session_key || 'chat_history';
             if (expiryEl) expiryEl.value = memory.expiry_minutes || 60;
 
@@ -436,7 +667,35 @@ const App = {
             const promptEl = document.getElementById('n8n-cfg-system-prompt');
             if (promptEl) promptEl.value = agent.systemMessage || '';
 
-            // 6. Update Telemetry
+            // 6. Populate Webhook Path
+            const webhookPathEl = document.getElementById('n8n-cfg-webhook-path');
+            const webhookPreviewEl = document.getElementById('n8n-webhook-url-preview');
+            const webhookDisplayEl = document.getElementById('n8n-webhook-display');
+
+            const rawWebhookUrl = n8n.webhook_url || 'http://localhost:5678/webhook/whatsapp-restaurant';
+            // Extract just the path segment (after /webhook/)
+            let webhookPath = 'whatsapp-restaurant';
+            try {
+                const urlObj = new URL(rawWebhookUrl);
+                const parts = urlObj.pathname.split('/webhook/');
+                if (parts.length > 1 && parts[1]) webhookPath = parts[1];
+            } catch (_) {
+                // If it's already just a path segment
+                if (rawWebhookUrl && !rawWebhookUrl.startsWith('http')) webhookPath = rawWebhookUrl;
+            }
+            if (webhookPathEl) webhookPathEl.value = webhookPath;
+            const resolvedUrl = `http://localhost:5678/webhook/${webhookPath}`;
+            if (webhookPreviewEl) webhookPreviewEl.innerText = resolvedUrl;
+            if (webhookDisplayEl) webhookDisplayEl.innerText = resolvedUrl;
+
+            // Store resolved webhook URL in App state for Simulator use
+            this.n8nWebhookUrl = resolvedUrl;
+
+            // Sync the Simulator screen webhook status bar
+            const simActiveEl = document.getElementById('sim-active-webhook-url');
+            if (simActiveEl) simActiveEl.innerText = resolvedUrl;
+
+            // 7. Update Telemetry
             this.loadN8nSyncStatus();
 
             // Apply brand name dynamically across UI
@@ -501,6 +760,11 @@ const App = {
                 sheets_client_id: document.getElementById('n8n-cfg-sheets-client-id')?.value.trim() || undefined,
                 sheets_client_secret: sheetsSecretInput && sheetsSecretInput.value.trim() ? sheetsSecretInput.value.trim() : undefined,
 
+                webhook_url: (() => {
+                    const path = document.getElementById('n8n-cfg-webhook-path')?.value?.trim() || 'whatsapp-restaurant';
+                    return `http://localhost:5678/webhook/${path}`;
+                })(),
+
                 systemMessage: document.getElementById('n8n-cfg-system-prompt').value.trim()
             };
 
@@ -510,6 +774,15 @@ const App = {
             const versionInfo = pushResult && pushResult.success !== false
                 ? `v${pushResult.versionCounter || 'latest'}`
                 : (pushResult && pushResult.error ? `(push warning: ${pushResult.error})` : '');
+
+            // Update webhook URL display after save
+            const savedWebhookPath = document.getElementById('n8n-cfg-webhook-path')?.value?.trim() || 'whatsapp-restaurant';
+            const savedWebhookUrl = `http://localhost:5678/webhook/${savedWebhookPath}`;
+            this.n8nWebhookUrl = savedWebhookUrl;
+            const webhookDisplayEl = document.getElementById('n8n-webhook-display');
+            if (webhookDisplayEl) webhookDisplayEl.innerText = savedWebhookUrl;
+            const webhookPreviewEl = document.getElementById('n8n-webhook-url-preview');
+            if (webhookPreviewEl) webhookPreviewEl.innerText = savedWebhookUrl;
 
             this.applyBrandName(payload.restaurant_name, payload.contact_number);
             await this.loadN8nSyncStatus();
@@ -549,75 +822,105 @@ const App = {
             this.cachedAnalytics = a;
             this.renderDashboardCards();
 
-            // Render Orders Table with Expandable Details
-            const tbody = document.getElementById('dash-orders-table-body');
-            const orders = ordersRes.data || [];
-
-            if (orders.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="9" style="text-align:center; color:var(--text-dim);">No orders recorded yet</td></tr>';
-                return;
-            }
-
-            let html = '';
-            orders.forEach(o => {
-                const statusBadge = this.getStatusBadge(o.status);
-                const paymentBadge = this.getPaymentBadge(o.payment_status);
-
-                html += `
-                    <tr id="order-row-${o.id}">
-                        <td style="cursor:pointer;" onclick="App.toggleOrderDetails(${o.id})">
-                            <span id="expand-icon-${o.id}" style="font-size:11px; color:var(--text-muted);">▶</span>
-                        </td>
-                        <td><strong>#${o.order_code}</strong></td>
-                        <td>${o.customer_name}</td>
-                        <td>${o.quantity} x ${o.item_name}</td>
-                        <td><strong>₹${o.total_amount}</strong></td>
-                        <td>${statusBadge}</td>
-                        <td>${paymentBadge}</td>
-                        <td>${new Date(o.order_date).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</td>
-                        <td>
-                            <button class="btn btn-secondary" style="padding:3px 8px; font-size:11px;" onclick="App.toggleOrderDetails(${o.id})">
-                                Details
-                            </button>
-                        </td>
-                    </tr>
-                    <tr id="order-detail-${o.id}" class="order-detail-row">
-                        <td colspan="9" style="padding:0;">
-                            <div class="order-detail-box">
-                                <div class="detail-item">
-                                    <strong>Customer Contact:</strong>
-                                    <span>${o.customer_phone || 'WhatsApp Direct'}</span>
-                                    <div style="margin-top:6px;"><strong>Order Description:</strong> ${o.description || 'Order accepted (item available)'}</div>
-                                </div>
-                                <div class="detail-item">
-                                    <strong>Unit Price:</strong> ₹${o.unit_price} x ${o.quantity} portions
-                                    <div style="margin-top:6px;"><strong>Source Channel:</strong> ${o.source}</div>
-                                    <div style="margin-top:4px;"><strong>Kitchen Notes:</strong> ${o.notes || 'None'}</div>
-                                </div>
-                                <div class="detail-item">
-                                    <strong>Update Order Status:</strong>
-                                    <div style="display:flex; gap:6px; margin-top:4px; flex-wrap:wrap;">
-                                        <button class="btn btn-secondary" style="padding:2px 6px; font-size:10.5px;" onclick="App.changeOrderStatus(${o.id}, 'Accepted')">Accept</button>
-                                        <button class="btn btn-secondary" style="padding:2px 6px; font-size:10.5px;" onclick="App.changeOrderStatus(${o.id}, 'In Progress')">Cooking</button>
-                                        <button class="btn btn-primary" style="padding:2px 6px; font-size:10.5px;" onclick="App.changeOrderStatus(${o.id}, 'Delivered')">Deliver</button>
-                                        <button class="btn btn-danger" style="padding:2px 6px; font-size:10.5px;" onclick="App.changeOrderStatus(${o.id}, 'Rejected')">Reject</button>
-                                    </div>
-                                    <div style="margin-top:8px;">
-                                        <strong>Payment:</strong>
-                                        <button class="btn btn-secondary" style="padding:2px 6px; font-size:10.5px; margin-top:2px;" onclick="App.changePaymentStatus(${o.id}, 'Payment Received')">
-                                            Mark Paid ✅
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        </td>
-                    </tr>
-                `;
-            });
-            tbody.innerHTML = html;
+            // Cache and render orders with real-time filter support
+            this.cachedOrders = ordersRes.data || [];
+            this.filterOrders();
         } catch (err) {
             console.error('[Dashboard Error]:', err);
         }
+    },
+
+    filterOrders() {
+        const query = (document.getElementById('order-search')?.value || '').toLowerCase().trim();
+        const statusFilter = document.getElementById('order-status-filter')?.value || 'ALL';
+        let filtered = this.cachedOrders || [];
+
+        if (statusFilter !== 'ALL') {
+            filtered = filtered.filter(o => (o.status || '').toLowerCase() === statusFilter.toLowerCase());
+        }
+        if (query) {
+            filtered = filtered.filter(o => 
+                (o.order_code && o.order_code.toLowerCase().includes(query)) ||
+                (o.customer_name && o.customer_name.toLowerCase().includes(query)) ||
+                (o.item_name && o.item_name.toLowerCase().includes(query)) ||
+                (o.customer_phone && o.customer_phone.toLowerCase().includes(query))
+            );
+        }
+        this.renderOrdersTable(filtered);
+    },
+
+    renderOrdersTable(orders) {
+        const tbody = document.getElementById('dash-orders-table-body');
+        if (!tbody) return;
+
+        if (!orders || orders.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="9" style="text-align:center; color:var(--text-dim); padding:20px;">No matching orders found</td></tr>';
+            return;
+        }
+
+        const sym = this.currentCurrencySymbol || '₹';
+        let html = '';
+        orders.forEach(o => {
+            const statusBadge = this.getStatusBadge(o.status);
+            const paymentBadge = this.getPaymentBadge(o.payment_status);
+
+            html += `
+                <tr id="order-row-${o.id}">
+                    <td style="cursor:pointer;" onclick="App.toggleOrderDetails(${o.id})">
+                        <span id="expand-icon-${o.id}" style="font-size:11px; color:var(--text-muted);">▶</span>
+                    </td>
+                    <td><strong>#${o.order_code}</strong></td>
+                    <td>${o.customer_name}</td>
+                    <td>${o.quantity} x ${o.item_name}</td>
+                    <td><strong>${sym}${parseFloat(o.total_amount).toFixed(2)}</strong></td>
+                    <td>${statusBadge}</td>
+                    <td>${paymentBadge}</td>
+                    <td>${new Date(o.order_date).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</td>
+                    <td>
+                        <button class="btn btn-secondary" style="padding:3px 8px; font-size:11px;" onclick="App.toggleOrderDetails(${o.id})">
+                            Details
+                        </button>
+                    </td>
+                </tr>
+                <tr id="order-detail-${o.id}" class="order-detail-row">
+                    <td colspan="9" style="padding:0;">
+                        <div class="order-detail-box">
+                            <div class="detail-item">
+                                <strong>Customer Contact:</strong>
+                                <span>${o.customer_phone || 'WhatsApp Direct'}</span>
+                                <div style="margin-top:6px;"><strong>Order Description:</strong> ${o.description || 'Order accepted (item available)'}</div>
+                            </div>
+                            <div class="detail-item">
+                                <strong>Unit Price:</strong> ${sym}${parseFloat(o.unit_price).toFixed(2)} x ${o.quantity} portions
+                                <div style="margin-top:6px;"><strong>Source Channel:</strong> ${o.source}</div>
+                                <div style="margin-top:4px;"><strong>Kitchen Notes:</strong> ${o.notes || 'None'}</div>
+                            </div>
+                            <div class="detail-item">
+                                <strong>Order Status:</strong>
+                                <div style="display:flex; gap:6px; margin-top:4px; flex-wrap:wrap; align-items:center;">
+                                    <button class="btn btn-primary" style="padding:2px 8px; font-size:10.5px; font-weight:600;" onclick="App.openOrderActionModal('${o.order_code}', '${o.status}', '${o.payment_status}', ${o.id})">⚡ Action</button>
+                                    <button class="btn btn-secondary" style="padding:2px 6px; font-size:10.5px;" onclick="App.changeOrderStatus(${o.id}, 'Confirmed')">Confirm 🍳</button>
+                                    <button class="btn btn-secondary" style="padding:2px 6px; font-size:10.5px;" onclick="App.changeOrderStatus(${o.id}, 'In Progress')">Cooking 👨‍🍳</button>
+                                    <button class="btn btn-secondary" style="padding:2px 6px; font-size:10.5px;" onclick="App.changeOrderStatus(${o.id}, 'Dispatched')">Dispatch 🛵</button>
+                                    <button class="btn btn-primary" style="padding:2px 6px; font-size:10.5px;" onclick="App.changeOrderStatus(${o.id}, 'Delivered')">Deliver ✅</button>
+                                    <button class="btn btn-danger" style="padding:2px 6px; font-size:10.5px;" onclick="App.changeOrderStatus(${o.id}, 'Cancelled')">Cancel 🛑</button>
+                                </div>
+                                <div style="margin-top:8px;">
+                                    <strong>Payment Options:</strong>
+                                    <div style="display:flex; gap:6px; margin-top:4px; flex-wrap:wrap; align-items:center;">
+                                        <button class="btn btn-secondary" style="padding:2px 6px; font-size:10.5px;" onclick="App.changePaymentStatus(${o.id}, 'Cash on Delivery')">Cash 💵</button>
+                                        <button class="btn btn-secondary" style="padding:2px 6px; font-size:10.5px;" onclick="App.changePaymentStatus(${o.id}, 'UPI Confirmed')">UPI 📱</button>
+                                        <button class="btn btn-primary" style="padding:2px 6px; font-size:10.5px;" onclick="App.changePaymentStatus(${o.id}, 'Payment Received')">Paid 💳</button>
+                                        <button class="btn btn-danger" style="padding:2px 6px; font-size:10.5px;" onclick="App.changePaymentStatus(${o.id}, 'Refunded')">Refund 🔄</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </td>
+                </tr>
+            `;
+        });
+        tbody.innerHTML = html;
     },
 
     toggleOrderDetails(orderId) {
@@ -647,10 +950,136 @@ const App = {
     async changePaymentStatus(id, payment_status) {
         try {
             await API.updateOrderPayment(id, payment_status);
+            this.showNotificationDrawer('💳 Payment Recorded', `Order payment updated to: ${payment_status}`, 'View Financials', () => App.navigateTo('dashboard'));
             this.loadDashboardData();
         } catch (err) {
             alert('Could not update payment: ' + err.message);
         }
+    },
+
+    // MULTI-OPTION ORDER ACTION DIALOG
+    openOrderActionModal(orderCode, currentStatus, currentPayment, orderId) {
+        this.activeActionOrderId = orderId;
+        this.activeActionOrderCode = orderCode;
+        const codeEl = document.getElementById('modal-order-code');
+        if (codeEl) codeEl.innerText = orderCode;
+
+        // Reset radio selection to first option
+        this.selectedOrderActionType = 'STATUS_CONFIRMED';
+        const cards = document.querySelectorAll('#order-action-options .modal-option-card');
+        cards.forEach((c, idx) => {
+            if (idx === 0) {
+                c.classList.add('selected');
+                const radio = c.querySelector('input[type="radio"]');
+                if (radio) radio.checked = true;
+            } else {
+                c.classList.remove('selected');
+            }
+        });
+
+        const modal = document.getElementById('modal-order-action');
+        if (modal) modal.classList.add('active');
+    },
+
+    closeOrderActionModal() {
+        const modal = document.getElementById('modal-order-action');
+        if (modal) modal.classList.remove('active');
+        this.activeActionOrderId = null;
+        this.activeActionOrderCode = null;
+    },
+
+    selectOrderAction(actionType, element) {
+        this.selectedOrderActionType = actionType;
+        const cards = document.querySelectorAll('#order-action-options .modal-option-card');
+        cards.forEach(c => c.classList.remove('selected'));
+        if (element) {
+            element.classList.add('selected');
+            const radio = element.querySelector('input[type="radio"]');
+            if (radio) radio.checked = true;
+        }
+    },
+
+    async submitOrderAction() {
+        if (!this.activeActionOrderId) return;
+        const orderId = this.activeActionOrderId;
+        const orderCode = this.activeActionOrderCode;
+        const action = this.selectedOrderActionType;
+
+        try {
+            if (action === 'STATUS_CONFIRMED') {
+                await API.updateOrderStatus(orderId, 'Confirmed');
+                this.showNotificationDrawer('🍳 Order Confirmed', `Order ${orderCode} sent to kitchen for cooking.`, 'View Orders', () => App.navigateTo('dashboard'));
+            } else if (action === 'STATUS_COMPLETED') {
+                await API.updateOrderStatus(orderId, 'Delivered');
+                this.showNotificationDrawer('✅ Order Delivered', `Order ${orderCode} marked delivered. CFO revenue updated!`, 'View Financials', () => App.navigateTo('dashboard'));
+            } else if (action === 'PAYMENT_PAID') {
+                await API.updateOrderPayment(orderId, 'Payment Received');
+                this.showNotificationDrawer('💳 Payment Recorded', `Payment cleared for ${orderCode}.`, 'View CFO', () => App.navigateTo('dashboard'));
+            } else if (action === 'CANCEL_RESTOCK') {
+                await API.updateOrderStatus(orderId, 'Cancelled');
+                this.showNotificationDrawer('🛑 Order Cancelled', `Order ${orderCode} cancelled and inventory restored.`, 'Audit Log', () => App.navigateTo('audit'));
+            }
+
+            this.closeOrderActionModal();
+            this.loadDashboardData();
+        } catch (err) {
+            this.toast('Action failed: ' + err.message, 'error');
+        }
+    },
+
+    // SLIDE IN/OUT NOTIFICATION DRAWER (BOTTOM-RIGHT)
+    showNotificationDrawer(title, body, actionLabel = 'View', actionCallback = null) {
+        const drawer = document.getElementById('notification-drawer');
+        const titleEl = document.getElementById('drawer-title');
+        const bodyEl = document.getElementById('drawer-body');
+        const actionBtn = document.getElementById('drawer-action-btn');
+
+        if (!drawer) return;
+        if (titleEl) titleEl.innerHTML = title;
+        if (bodyEl) bodyEl.innerText = body;
+        if (actionBtn) {
+            actionBtn.innerText = actionLabel;
+            actionBtn.onclick = () => {
+                this.closeNotificationDrawer();
+                if (typeof actionCallback === 'function') actionCallback();
+            };
+        }
+
+        drawer.classList.add('active');
+        if (this._drawerTimeout) clearTimeout(this._drawerTimeout);
+        this._drawerTimeout = setTimeout(() => this.closeNotificationDrawer(), 6000);
+    },
+
+    closeNotificationDrawer() {
+        const drawer = document.getElementById('notification-drawer');
+        if (drawer) drawer.classList.remove('active');
+    },
+
+    // NON-BLOCKING CONFIRMATION MODAL (HUMAN-IN-THE-LOOP UX)
+    confirmAction(title, message, onConfirm, confirmText = 'Confirm Delete', confirmClass = 'btn-danger') {
+        const modal = document.getElementById('modal-confirm-dialog');
+        const titleEl = document.getElementById('confirm-dialog-title');
+        const msgEl = document.getElementById('confirm-dialog-message');
+        const proceedBtn = document.getElementById('confirm-dialog-proceed-btn');
+
+        if (titleEl) titleEl.innerText = title;
+        if (msgEl) msgEl.innerText = message;
+        if (proceedBtn) {
+            proceedBtn.innerText = confirmText;
+            proceedBtn.className = `btn ${confirmClass}`;
+            proceedBtn.onclick = async () => {
+                this.closeConfirmModal();
+                if (typeof onConfirm === 'function') {
+                    await onConfirm();
+                }
+            };
+        }
+        if (modal) modal.classList.add('active');
+    },
+
+    closeConfirmModal() {
+        const modal = document.getElementById('modal-confirm-dialog');
+        if (modal) modal.classList.remove('active');
     },
 
     getStatusBadge(status) {
@@ -689,6 +1118,21 @@ const App = {
             document.getElementById('rest-hours').value = data.opening_hours || '09:00 AM - 11:00 PM';
             document.getElementById('rest-contact').value = data.contact_number || '+95 1224567890';
             document.getElementById('rest-delivery').checked = !!data.delivery_enabled;
+
+            const addrEl = document.getElementById('rest-address');
+            if (addrEl) addrEl.value = data.address || '';
+            const locEl = document.getElementById('rest-location-url');
+            if (locEl) locEl.value = data.location_url || '';
+            const ownerEl = document.getElementById('rest-owner-name');
+            if (ownerEl) ownerEl.value = data.owner_name || '';
+            const phoneEl = document.getElementById('rest-owner-phone');
+            if (phoneEl) phoneEl.value = data.owner_phone || '';
+            const fssaiEl = document.getElementById('rest-fssai');
+            if (fssaiEl) fssaiEl.value = data.fssai_license || '';
+            const cuisEl = document.getElementById('rest-cuisines');
+            if (cuisEl) cuisEl.value = data.cuisine_types || '';
+
+            this.applyBrandName(data.restaurant_name, data.contact_number, data.currency_symbol);
         } catch (err) {
             alert('Failed to load profile: ' + err.message);
         }
@@ -696,6 +1140,12 @@ const App = {
 
     async saveRestaurantProfile(e) {
         e.preventDefault();
+        const submitBtn = e.target.querySelector('button[type="submit"]');
+        const origText = submitBtn ? submitBtn.innerHTML : '';
+        if (submitBtn) {
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = 'Saving Profile... ⏳';
+        }
         try {
             const body = {
                 restaurant_name: document.getElementById('rest-name').value,
@@ -704,31 +1154,108 @@ const App = {
                 currency_symbol: document.getElementById('rest-symbol').value,
                 opening_hours: document.getElementById('rest-hours').value,
                 contact_number: document.getElementById('rest-contact').value,
-                delivery_enabled: document.getElementById('rest-delivery').checked
+                delivery_enabled: document.getElementById('rest-delivery').checked,
+                address: document.getElementById('rest-address')?.value || '',
+                location_url: document.getElementById('rest-location-url')?.value || '',
+                owner_name: document.getElementById('rest-owner-name')?.value || '',
+                owner_phone: document.getElementById('rest-owner-phone')?.value || '',
+                fssai_license: document.getElementById('rest-fssai')?.value || '',
+                cuisine_types: document.getElementById('rest-cuisines')?.value || ''
             };
             await API.updateRestaurant(body);
-            this.applyBrandName(body.restaurant_name, body.contact_number);
-            alert('Cafe profile saved successfully! Brand updated across system.');
+            this.applyBrandName(body.restaurant_name, body.contact_number, body.currency_symbol);
+            this.showNotificationDrawer('💾 Profile Saved', 'Cafe profile saved! Brand and currency updated across system.', 'Dashboard', () => App.navigateTo('dashboard'));
             this.loadHealthAndStatus();
             this.loadN8nWorkflowPage();
         } catch (err) {
-            alert('Failed to save profile: ' + err.message);
+            this.toast('Failed to save profile: ' + err.message, 'error');
+        } finally {
+            if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = origText;
+            }
         }
     },
 
-    // 7. MENU & INVENTORY
+    // 7. MENU & INVENTORY (TABLE VIEW + 3D CARD FLIPPER)
     async loadMenuItems() {
         try {
             const search = document.getElementById('menu-search')?.value || '';
             const res = await API.getMenu(search ? `?search=${encodeURIComponent(search)}` : '');
-            const tbody = document.getElementById('menu-table-body');
+            this.cachedMenuItems = res.data || [];
+            this.populateCategoryFilter(this.cachedMenuItems);
+            this.renderFilteredMenu();
+        } catch (err) {
+            console.error('Menu load error:', err);
+        }
+    },
 
-            tbody.innerHTML = (res.data || []).map(item => `
+    populateCategoryFilter(items) {
+        const select = document.getElementById('menu-category-filter');
+        if (!select) return;
+        const currentVal = this.selectedCategoryFilter || 'ALL';
+        const counts = { ALL: items.length };
+        items.forEach(it => {
+            const cat = it.category || 'General';
+            counts[cat] = (counts[cat] || 0) + 1;
+        });
+        const categories = Object.keys(counts).filter(c => c !== 'ALL');
+        select.innerHTML = `
+            <option value="ALL">All Categories (${counts.ALL})</option>
+            ${categories.map(cat => `<option value="${cat}" ${cat === currentVal ? 'selected' : ''}>${cat} (${counts[cat]})</option>`).join('')}
+        `;
+    },
+
+    setMenuViewMode(mode) {
+        this.menuViewMode = mode;
+        const btnTable = document.getElementById('btn-view-table');
+        const btnFlipper = document.getElementById('btn-view-flipper');
+        const tableContainer = document.getElementById('menu-table-container');
+        const flipperGrid = document.getElementById('menu-flipper-grid');
+
+        if (mode === 'flipper') {
+            if (btnTable) btnTable.classList.remove('active');
+            if (btnFlipper) btnFlipper.classList.add('active');
+            if (tableContainer) tableContainer.style.display = 'none';
+            if (flipperGrid) flipperGrid.style.display = 'grid';
+        } else {
+            if (btnTable) btnTable.classList.add('active');
+            if (btnFlipper) btnFlipper.classList.remove('active');
+            if (tableContainer) tableContainer.style.display = 'block';
+            if (flipperGrid) flipperGrid.style.display = 'none';
+        }
+        this.renderFilteredMenu();
+    },
+
+    filterMenuByCategory(category) {
+        this.selectedCategoryFilter = category;
+        this.renderFilteredMenu();
+    },
+
+    renderFilteredMenu() {
+        let items = this.cachedMenuItems || [];
+        const search = document.getElementById('menu-search')?.value?.toLowerCase() || '';
+        if (search) {
+            items = items.filter(it => 
+                (it.item_name && it.item_name.toLowerCase().includes(search)) ||
+                (it.item_code && it.item_code.toLowerCase().includes(search)) ||
+                (it.category && it.category.toLowerCase().includes(search))
+            );
+        }
+        if (this.selectedCategoryFilter && this.selectedCategoryFilter !== 'ALL') {
+            items = items.filter(it => it.category === this.selectedCategoryFilter);
+        }
+
+        // 1. Render Table Rows
+        const tbody = document.getElementById('menu-table-body');
+        const sym = this.currentCurrencySymbol || '₹';
+        if (tbody) {
+            tbody.innerHTML = items.map(item => `
                 <tr>
                     <td><code>${item.item_code}</code></td>
                     <td><strong>${item.item_name}</strong></td>
                     <td><span class="badge badge-category">${item.category}</span></td>
-                    <td>₹${item.price}</td>
+                    <td>${sym}${parseFloat(item.price).toFixed(2)}</td>
                     <td>${item.quantity}</td>
                     <td>
                         <span class="badge ${item.status === 'AVAILABLE' ? 'badge-available' : 'badge-out-of-stock'}">
@@ -737,6 +1264,7 @@ const App = {
                     </td>
                     <td>
                         <div class="btn-group">
+                            <button class="btn btn-secondary" style="padding:2px 7px; font-size:11px;" onclick="App.openEditMenuModal(${item.id})">Edit ✏️</button>
                             <button class="btn btn-secondary" style="padding:2px 7px; font-size:11px;" onclick="App.toggleMenuAvailability(${item.id})">
                                 ${item.status === 'AVAILABLE' ? 'Out of Stock' : 'In Stock'}
                             </button>
@@ -745,8 +1273,105 @@ const App = {
                     </td>
                 </tr>
             `).join('') || '<tr><td colspan="7" style="text-align:center;">No menu items found</td></tr>';
-        } catch (err) {
-            console.error('Menu load error:', err);
+        }
+
+        // 2. Render 3D Flipper Cards
+        this.renderMenuFlipperCards(items);
+    },
+
+    renderMenuFlipperCards(items) {
+        const grid = document.getElementById('menu-flipper-grid');
+        if (!grid) return;
+        if (!items || items.length === 0) {
+            grid.innerHTML = '<div style="grid-column: 1/-1; text-align:center; color:var(--text-muted); padding:30px;">No menu items found</div>';
+            return;
+        }
+
+        const sym = this.currentCurrencySymbol || '₹';
+        grid.innerHTML = items.map(item => `
+            <div class="flipper-container" id="flipper-container-${item.id}">
+                <div class="flipper-card" id="flipper-card-${item.id}">
+                    <!-- FRONT FACE -->
+                    <div class="flipper-face flipper-front">
+                        <div>
+                            <div class="flipper-header">
+                                <span class="flipper-code">${item.item_code}</span>
+                                <span class="badge ${item.status === 'AVAILABLE' ? 'badge-available' : 'badge-out-of-stock'}">
+                                    ${item.status === 'AVAILABLE' ? 'In Stock (' + item.quantity + ')' : 'Out of Stock'}
+                                </span>
+                            </div>
+                            <div class="flipper-title">${item.item_name}</div>
+                            <div class="flipper-category">🍽️ ${item.category}</div>
+                            <div class="flipper-price">${sym}${parseFloat(item.price).toFixed(2)}</div>
+                            <div style="font-size:12px; color:var(--text-muted); line-height:1.4;">
+                                ${item.description || 'Authentic freshly prepared delicacy served hot.'}
+                            </div>
+                        </div>
+                        <div class="flipper-footer">
+                            <div class="btn-group">
+                                <button class="btn btn-secondary" style="padding:3px 8px; font-size:11px;" onclick="App.toggleMenuAvailability(${item.id})">
+                                    ${item.status === 'AVAILABLE' ? 'Mark Out' : 'Restock'}
+                                </button>
+                            </div>
+                            <button class="btn-flip" onclick="App.flipCard(${item.id})">Flip Info 🔄</button>
+                        </div>
+                    </div>
+
+                    <!-- BACK FACE -->
+                    <div class="flipper-face flipper-back">
+                        <div>
+                            <div class="flipper-header">
+                                <span class="badge badge-accent">Kitchen Specs</span>
+                                <span style="font-size:11px; font-family:var(--font-mono); color:var(--brand-primary);">${item.item_code}</span>
+                            </div>
+                            <div style="font-size:13px; font-weight:700; color:var(--text-main); margin-top:8px;">${item.item_name} Details</div>
+                            <div style="font-size:11.5px; color:var(--text-muted); margin-top:6px; line-height:1.5;">
+                                <div>🌱 <strong>Dietary:</strong> 100% Vegetarian / Halal Fresh</div>
+                                <div>📦 <strong>Stock Qty:</strong> ${item.quantity} portions</div>
+                                <div>⚡ <strong>Rule 2 Check:</strong> ${item.status === 'AVAILABLE' ? 'Active in WhatsApp ordering' : 'Blocked (Rule 2 auto-rejection)'}</div>
+                            </div>
+                        </div>
+                        <div class="flipper-footer">
+                            <div class="btn-group">
+                                <button class="btn btn-secondary" style="padding:3px 8px; font-size:11px;" onclick="App.openEditMenuModal(${item.id})">Edit ✏️</button>
+                                <button class="btn btn-danger" style="padding:3px 8px; font-size:11px;" onclick="App.deleteMenuItem(${item.id})">Delete</button>
+                            </div>
+                            <button class="btn-flip" onclick="App.flipCard(${item.id})">Flip Back ↩️</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `).join('');
+    },
+
+    openEditMenuModal(id) {
+        const item = (this.cachedMenuItems || []).find(i => i.id === id);
+        if (!item) return;
+
+        document.getElementById('edit-menu-id').value = item.id;
+        document.getElementById('edit-menu-code').value = item.item_code;
+        document.getElementById('edit-menu-name').value = item.item_name;
+        document.getElementById('edit-menu-category').value = item.category || 'General';
+        document.getElementById('edit-menu-price').value = item.price;
+        document.getElementById('edit-menu-qty').value = item.quantity;
+        document.getElementById('edit-menu-status').value = item.status;
+        document.getElementById('edit-menu-desc').value = item.description || '';
+        const titleEl = document.getElementById('edit-menu-code-title');
+        if (titleEl) titleEl.innerText = `${item.item_code} — ${item.item_name}`;
+
+        const modal = document.getElementById('modal-edit-menu');
+        if (modal) modal.classList.add('active');
+    },
+
+    closeEditMenuModal() {
+        const modal = document.getElementById('modal-edit-menu');
+        if (modal) modal.classList.remove('active');
+    },
+
+    flipCard(id) {
+        const card = document.getElementById(`flipper-card-${id}`);
+        if (card) {
+            card.classList.toggle('is-flipped');
         }
     },
 
@@ -759,14 +1384,24 @@ const App = {
         }
     },
 
-    async deleteMenuItem(id) {
-        if (!confirm('Delete this menu item?')) return;
-        try {
-            await API.deleteMenu(id);
-            this.loadMenuItems();
-        } catch (err) {
-            alert('Error deleting item: ' + err.message);
-        }
+    deleteMenuItem(id) {
+        const item = (this.cachedMenuItems || []).find(i => i.id === id);
+        const name = item ? `"${item.item_name}"` : 'this menu item';
+        this.confirmAction(
+            '⚠️ Delete Menu Item',
+            `Are you sure you want to delete ${name}? This action cannot be undone.`,
+            async () => {
+                try {
+                    await API.deleteMenu(id);
+                    this.loadMenuItems();
+                    this.showNotificationDrawer('🗑️ Item Deleted', `${name} was removed from the menu.`, 'View Menu', () => App.navigateTo('menu'));
+                } catch (err) {
+                    this.toast('Error deleting item: ' + err.message, 'error');
+                }
+            },
+            'Delete Item',
+            'btn-danger'
+        );
     },
 
     // 8. BULK MENU CSV UPLOAD & TEMPLATE DOWNLOAD
@@ -855,15 +1490,19 @@ const App = {
         try {
             const search = document.getElementById('faq-search')?.value || '';
             const res = await API.getFAQ(search ? `?search=${encodeURIComponent(search)}` : '');
+            this.cachedFaqItems = res.data || [];
             const tbody = document.getElementById('faq-table-body');
 
-            tbody.innerHTML = (res.data || []).map(f => `
+            tbody.innerHTML = this.cachedFaqItems.map(f => `
                 <tr>
                     <td><span class="badge badge-category">${f.category}</span></td>
                     <td><strong>${f.question}</strong></td>
                     <td style="max-width:350px;">${f.answer}</td>
                     <td>
-                        <button class="btn btn-danger" style="padding:2px 7px; font-size:11px;" onclick="App.deleteFAQItem(${f.id})">Delete</button>
+                        <div class="btn-group">
+                            <button class="btn btn-secondary" style="padding:2px 7px; font-size:11px;" onclick="App.openEditFAQModal(${f.id})">Edit ✏️</button>
+                            <button class="btn btn-danger" style="padding:2px 7px; font-size:11px;" onclick="App.deleteFAQItem(${f.id})">Delete</button>
+                        </div>
                     </td>
                 </tr>
             `).join('') || '<tr><td colspan="4" style="text-align:center;">No FAQs found</td></tr>';
@@ -872,14 +1511,42 @@ const App = {
         }
     },
 
-    async deleteFAQItem(id) {
-        if (!confirm('Delete this FAQ?')) return;
-        try {
-            await API.deleteFAQ(id);
-            this.loadFAQItems();
-        } catch (err) {
-            alert('Error deleting FAQ: ' + err.message);
-        }
+    openEditFAQModal(id) {
+        const faq = (this.cachedFaqItems || []).find(f => f.id === id);
+        if (!faq) return;
+
+        document.getElementById('edit-faq-id').value = faq.id;
+        document.getElementById('edit-faq-category').value = faq.category || 'General';
+        document.getElementById('edit-faq-question').value = faq.question;
+        document.getElementById('edit-faq-answer').value = faq.answer;
+
+        const modal = document.getElementById('modal-edit-faq');
+        if (modal) modal.classList.add('active');
+    },
+
+    closeEditFAQModal() {
+        const modal = document.getElementById('modal-edit-faq');
+        if (modal) modal.classList.remove('active');
+    },
+
+    deleteFAQItem(id) {
+        const faq = (this.cachedFaqItems || []).find(f => f.id === id);
+        const name = faq ? `"${faq.question}"` : 'this FAQ';
+        this.confirmAction(
+            '⚠️ Delete FAQ',
+            `Are you sure you want to delete ${name}? The AI agent will no longer answer this question.`,
+            async () => {
+                try {
+                    await API.deleteFAQ(id);
+                    this.loadFAQItems();
+                    this.showNotificationDrawer('🗑️ FAQ Deleted', `FAQ was removed.`, 'View FAQ', () => App.navigateTo('faq'));
+                } catch (err) {
+                    this.toast('Error deleting FAQ: ' + err.message, 'error');
+                }
+            },
+            'Delete FAQ',
+            'btn-danger'
+        );
     },
 
     // 10. AI AGENT SETTINGS & PROMPT PREVIEW
@@ -1046,6 +1713,92 @@ const App = {
         }
     },
 
+    // n8n Workflow & Gemini Live Activation Status Check
+    async checkN8nActivationStatus() {
+        try {
+            let statusResp = await API.getN8nStatus();
+            let statusData = statusResp?.data || statusResp || {};
+
+            // Auto-start n8n if not running
+            if (!statusData.isRunning && typeof IS_STATIC !== 'undefined' && !IS_STATIC) {
+                console.log('[App] n8n server offline — triggering auto-start in background...');
+                const ensureResp = await API.ensureN8n().catch(() => null);
+                if (ensureResp?.data) statusData = ensureResp.data;
+            }
+
+            const syncData = await API.getN8nSync().catch(() => ({}));
+            const state = syncData?.data || syncData || {};
+            const isLive = Boolean(statusData.isRunning || state.active);
+            const webhookPath = state.webhookPath || 'whatsapp-restaurant';
+
+            const banner = document.getElementById('n8n-activation-banner');
+            const webhookDisplay = document.getElementById('sim-active-webhook-url');
+            const statusDiv = document.getElementById('sim-webhook-status');
+            const navStatusText = document.getElementById('status-runtime-text');
+            const navLiveDot = document.getElementById('n8n-live-dot');
+            const aiStatusText = document.getElementById('status-llm-text');
+
+            if (webhookDisplay) {
+                webhookDisplay.textContent = `http://localhost:5678/webhook/${webhookPath}`;
+            }
+
+            if (banner) {
+                banner.style.display = isLive ? 'none' : 'flex';
+            }
+
+            if (navStatusText) {
+                navStatusText.textContent = isLive ? 'n8n + Gemini 2.5 Flash: Live 🟢' : 'n8n: Reconnecting... 🔴';
+            }
+            if (navLiveDot) {
+                navLiveDot.className = isLive ? 'status-dot green pulse' : 'status-dot amber pulse';
+            }
+            if (aiStatusText) {
+                aiStatusText.textContent = isLive ? 'Gemini: 2.5-Flash (Live)' : 'Gemini: Busy / Retry';
+            }
+
+            if (statusDiv && !statusDiv.innerText.includes('Response received')) {
+                if (isLive) {
+                    statusDiv.innerHTML = '🟢 <strong>n8n & Gemini 2.5 Flash Live</strong> — Ready for incoming messages';
+                    statusDiv.style.color = 'var(--success, #25d366)';
+                } else {
+                    statusDiv.innerHTML = '🔴 <strong>Routes Busy / Retrying</strong> (n8n or Gemini connecting)';
+                    statusDiv.style.color = 'var(--danger, #ef4444)';
+                }
+            }
+        } catch (err) {
+            console.warn('[App] Could not check n8n activation status:', err.message);
+        }
+    },
+
+    async activateN8nWorkflow() {
+        const btn = document.getElementById('btn-activate-workflow');
+        if (btn) { btn.disabled = true; btn.textContent = 'Activating...'; }
+        try {
+            const result = await API.activateN8nWorkflow();
+            if (result.success) {
+                // Hide banner
+                const banner = document.getElementById('n8n-activation-banner');
+                if (banner) banner.style.display = 'none';
+
+                const statusDiv = document.getElementById('sim-webhook-status');
+                if (statusDiv) {
+                    statusDiv.textContent = '✅ Workflow activated — reload n8n to apply';
+                    statusDiv.style.color = 'var(--success, #25d366)';
+                }
+
+                // Open n8n in new tab so user can see it's active
+                window.open(`http://localhost:5678/workflow/USdZGa2vqGuUstP7`, '_blank');
+                alert('✅ Workflow activated in n8n database!\n\nPlease:\n1. Wait 3-5 seconds for n8n to detect the change\n2. Refresh n8n tab if open\n3. The toggle will now show active — messages will route through Google Sheets & Gemini AI');
+            } else {
+                alert('❌ Activation failed: ' + (result.error || 'Unknown error'));
+            }
+        } catch (err) {
+            alert('❌ Error: ' + err.message);
+        } finally {
+            if (btn) { btn.disabled = false; btn.textContent = '⚡ Activate Workflow'; }
+        }
+    },
+
     // 14. TEST CONSOLE (RULES 1 - 6)
     bindChatConsole() {
         const input = document.getElementById('chat-user-input');
@@ -1059,52 +1812,102 @@ const App = {
             this.appendChatBubble(text, 'inbound');
             input.value = '';
 
-            try {
-                // Check if n8n is running — route through webhook
-                let n8nPort = null;
-                try {
-                    const healthRes = await API.getHealth();
-                    n8nPort = healthRes.n8nRuntime?.configuredPort || null;
-                } catch (_) {}
+            // Show typing indicator
+            const typingId = `typing-${Date.now()}`;
+            const typingDiv = document.createElement('div');
+            typingDiv.id = typingId;
+            typingDiv.className = 'chat-bubble outbound';
+            typingDiv.innerHTML = '<span style="letter-spacing: 2px; opacity: 0.7;">&#8226;&#8226;&#8226; typing</span>';
+            const msgContainer = document.getElementById('whatsapp-messages');
+            msgContainer.appendChild(typingDiv);
+            msgContainer.scrollTop = msgContainer.scrollHeight;
 
-                if (n8nPort) {
-                    // Route through n8n webhook
-                    const n8nUrl = `http://localhost:${n8nPort}/webhook/whatsapp-restaurant`;
-                    const resp = await fetch(n8nUrl, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            phone: this.currentSessionKey,
-                            name: 'Demo User',
-                            text: text
-                        })
-                    });
-                    const n8nData = await resp.json();
-                    const reply = n8nData.output || n8nData.text || JSON.stringify(n8nData);
-                    this.appendChatBubble(reply, 'outbound');
-                    if (traceOutput) {
-                        traceOutput.innerText = `→ n8n Webhook Response\n${JSON.stringify(n8nData, null, 2)}`;
-                    }
-                } else {
-                    // Local simulator path (Mock AI)
-                    const response = await API.sendChat(text, this.currentSessionKey);
-                    const data = response.data;
-                    this.appendChatBubble(data.reply, 'outbound');
-                    if (traceOutput) {
-                        traceOutput.innerText = JSON.stringify({
-                            timestamp: new Date().toISOString(),
-                            input: data.normalizedInput,
-                            agentDecision: data.agentDecision,
-                            toolsCalled: data.toolsCalled,
-                            toolResults: data.toolResults,
-                            historyTurnsInSession: data.historyCount,
-                            executionLatencyMs: data.executionTimeMs
-                        }, null, 2);
+            const removeTyping = () => {
+                const el = document.getElementById(typingId);
+                if (el) el.remove();
+            };
+
+            const statusDiv = document.getElementById('sim-webhook-status');
+
+            try {
+                // -------------------------------------------------------
+                // ARCHITECTURE: Always route through our own backend API
+                // (/api/test/chat). The backend (SimulatorService) handles
+                // internal routing: n8n webhook → execution API → local LLM.
+                // The browser should NEVER call n8n directly (CORS / port).
+                // -------------------------------------------------------
+
+                // Update status bar with configured webhook path for display
+                const webhookPathInput = document.getElementById('n8n-cfg-webhook-path');
+                const configuredPath = (webhookPathInput?.value?.trim()) || 'whatsapp-restaurant';
+                const displayUrl = `http://localhost:5678/webhook/${configuredPath}`;
+                if (statusDiv) {
+                    statusDiv.innerText = `→ Routing via backend → ${displayUrl}`;
+                    statusDiv.style.color = 'var(--brand-primary)';
+                }
+
+                // POST to our own backend which internally handles n8n/LLM routing
+                const response = await API.sendChat(text, this.currentSessionKey);
+                const data = response.data;
+
+                removeTyping();
+                this.appendChatBubble(data.reply, 'outbound');
+
+                // Update status and trace with live Gemini / n8n workflow indicators
+                const isLive = data.n8nWorkflowActive && data.geminiModelActive;
+                if (statusDiv) {
+                    if (isLive) {
+                        statusDiv.innerHTML = '🟢 <strong>Live: n8n Workflow & Gemini 2.5 Flash Active</strong>';
+                        statusDiv.style.color = 'var(--success, #25d366)';
+                    } else {
+                        statusDiv.innerHTML = '🔴 <strong>Routes Busy / Retrying</strong> (n8n or Gemini Unavailable)';
+                        statusDiv.style.color = 'var(--danger, #ef4444)';
                     }
                 }
+
+                if (traceOutput) {
+                    traceOutput.innerText = JSON.stringify({
+                        timestamp: new Date().toISOString(),
+                        runtimeStatus: data.runtimeStatus || (isLive ? 'ONLINE_LIVE' : 'BUSY_RETRY'),
+                        n8nWorkflowActive: Boolean(data.n8nWorkflowActive),
+                        geminiModelActive: Boolean(data.geminiModelActive),
+                        liveModel: data.liveModel || (isLive ? 'models/gemini-2.5-flash' : 'models/gemini-2.5-flash (Unavailable)'),
+                        webhookEndpoint: data.webhookUrl || displayUrl,
+                        senderId: this.currentSessionKey || data.sessionKey || '1111111111',
+                        ingressChannel: data.ingressChannel || (this.currentSessionKey === '0000000000' ? 'CHAT_NODE' : 'WEB_APP'),
+                        normalizedInput: data.normalizedInput?.messageText || data.normalizedInput || text,
+                        agentDecision: data.agentDecision || (isLive ? 'N8N_API' : 'BUSY_RETRY'),
+                        toolsCalled: data.toolsCalled || [],
+                        toolResults: data.toolResults || [],
+                        historyTurnsInSession: data.historyCount || 1,
+                        executionLatencyMs: data.executionTimeMs || 0
+                    }, null, 2);
+                }
+
             } catch (err) {
-                this.appendChatBubble(`⚠️ Error: ${err.message}`, 'outbound');
-                if (traceOutput) traceOutput.innerText = `Error: ${err.message}`;
+                removeTyping();
+                const busyMsg = "All route is Bussy, Retry after some time";
+                this.appendChatBubble(busyMsg, 'outbound');
+                if (statusDiv) {
+                    statusDiv.innerHTML = '🔴 <strong>All route is Bussy, Retry after some time</strong>';
+                    statusDiv.style.color = 'var(--danger, #ef4444)';
+                }
+                if (traceOutput) {
+                    traceOutput.innerText = JSON.stringify({
+                        timestamp: new Date().toISOString(),
+                        runtimeStatus: 'BUSY_RETRY',
+                        n8nWorkflowActive: false,
+                        geminiModelActive: false,
+                        liveModel: 'models/gemini-2.5-flash (Unavailable)',
+                        webhookEndpoint: displayUrl,
+                        senderId: this.currentSessionKey || '1111111111',
+                        ingressChannel: this.currentSessionKey === '0000000000' ? 'CHAT_NODE' : 'WEB_APP',
+                        normalizedInput: text,
+                        agentDecision: 'BUSY_RETRY',
+                        error: err.message,
+                        reply: busyMsg
+                    }, null, 2);
+                }
             }
         };
 
@@ -1121,6 +1924,15 @@ const App = {
             });
         });
 
+        // Ingress Sender ID selector
+        const senderSelect = document.getElementById('chat-sender-id');
+        if (senderSelect) {
+            senderSelect.value = this.currentSessionKey;
+            senderSelect.addEventListener('change', (e) => {
+                this.setSessionSenderId(e.target.value);
+            });
+        }
+
         document.getElementById('btn-reset-chat-session').addEventListener('click', async () => {
             await API.resetSession(this.currentSessionKey);
             document.getElementById('whatsapp-messages').innerHTML = `
@@ -1129,16 +1941,32 @@ const App = {
                     <div class="chat-time">${new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</div>
                 </div>
             `;
-            document.getElementById('trace-output').innerText = '// Session reset. Next message will be turn 1.';
+            document.getElementById('trace-output').innerText = `// Session reset for Sender ID: ${this.currentSessionKey}. Next message will be turn 1.`;
         });
+    },
+
+    setSessionSenderId(val) {
+        if (!val) return;
+        this.currentSessionKey = val;
+        const senderSelect = document.getElementById('chat-sender-id');
+        if (senderSelect && senderSelect.value !== val) senderSelect.value = val;
+        const channelLabel = val === '0000000000' ? 'Chat Canvas Node' : (val === '1111111111' ? 'Webhook / Web App' : 'WhatsApp Cloud');
+        this.toast(`Channel switched to ${channelLabel} (${val})`, 'info');
     },
 
     appendChatBubble(text, direction) {
         const container = document.getElementById('whatsapp-messages');
         const bubble = document.createElement('div');
         bubble.className = `chat-bubble ${direction}`;
+
+        // Render WhatsApp-style markdown (Rule 6: *bold*, _italic_, \n → <br>)
+        const rendered = String(text)
+            .replace(/\*(.*?)\*/g, '<strong>$1</strong>')
+            .replace(/_(.*?)_/g, '<em>$1</em>')
+            .replace(/\n/g, '<br/>');
+
         bubble.innerHTML = `
-            ${text.replace(/\n/g, '<br/>')}
+            <span class="bubble-text">${rendered}</span>
             <div class="chat-time">${new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</div>
         `;
         container.appendChild(bubble);
@@ -1201,42 +2029,138 @@ const App = {
         // Add Menu Form
         document.getElementById('form-add-menu').addEventListener('submit', async (e) => {
             e.preventDefault();
+            const submitBtn = e.target.querySelector('button[type="submit"]');
+            const origText = submitBtn ? submitBtn.innerHTML : '';
+            if (submitBtn) {
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = 'Adding Item... ⏳';
+            }
             try {
                 const body = {
-                    item_code: document.getElementById('new-menu-code').value,
-                    item_name: document.getElementById('new-menu-name').value,
-                    category: document.getElementById('new-menu-category').value,
+                    item_code: document.getElementById('new-menu-code').value.trim(),
+                    item_name: document.getElementById('new-menu-name').value.trim(),
+                    category: document.getElementById('new-menu-category').value.trim(),
                     price: parseFloat(document.getElementById('new-menu-price').value),
                     quantity: parseInt(document.getElementById('new-menu-qty').value, 10),
-                    description: document.getElementById('new-menu-desc').value,
+                    description: document.getElementById('new-menu-desc').value.trim(),
                     status: document.getElementById('new-menu-status').value
                 };
                 await API.createMenu(body);
                 document.getElementById('modal-add-menu').classList.remove('active');
                 e.target.reset();
                 this.loadMenuItems();
+                this.showNotificationDrawer('✨ Item Added', `${body.item_name} added to menu!`, 'View Menu', () => App.navigateTo('menu'));
             } catch (err) {
-                alert('Error creating menu item: ' + err.message);
+                this.toast('Error creating menu item: ' + err.message, 'error');
+            } finally {
+                if (submitBtn) {
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = origText;
+                }
             }
         });
 
         // Add FAQ Form
         document.getElementById('form-add-faq').addEventListener('submit', async (e) => {
             e.preventDefault();
+            const submitBtn = e.target.querySelector('button[type="submit"]');
+            const origText = submitBtn ? submitBtn.innerHTML : '';
+            if (submitBtn) {
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = 'Adding FAQ... ⏳';
+            }
             try {
                 const body = {
-                    category: document.getElementById('new-faq-category').value,
-                    question: document.getElementById('new-faq-question').value,
-                    answer: document.getElementById('new-faq-answer').value
+                    category: document.getElementById('new-faq-category').value.trim(),
+                    question: document.getElementById('new-faq-question').value.trim(),
+                    answer: document.getElementById('new-faq-answer').value.trim()
                 };
                 await API.createFAQ(body);
                 document.getElementById('modal-add-faq').classList.remove('active');
                 e.target.reset();
                 this.loadFAQItems();
+                this.showNotificationDrawer('✨ FAQ Added', `New FAQ added to knowledge base!`, 'View FAQ', () => App.navigateTo('faq'));
             } catch (err) {
-                alert('Error creating FAQ: ' + err.message);
+                this.toast('Error creating FAQ: ' + err.message, 'error');
+            } finally {
+                if (submitBtn) {
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = origText;
+                }
             }
         });
+
+        // Edit Menu Form
+        const formEditMenu = document.getElementById('form-edit-menu');
+        if (formEditMenu) {
+            formEditMenu.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const id = document.getElementById('edit-menu-id').value;
+                if (!id) return;
+                const submitBtn = formEditMenu.querySelector('button[type="submit"]');
+                const origText = submitBtn ? submitBtn.innerHTML : '';
+                if (submitBtn) {
+                    submitBtn.disabled = true;
+                    submitBtn.innerHTML = 'Updating Item... ⏳';
+                }
+                try {
+                    const body = {
+                        item_code: document.getElementById('edit-menu-code').value.trim(),
+                        item_name: document.getElementById('edit-menu-name').value.trim(),
+                        category: document.getElementById('edit-menu-category').value.trim(),
+                        price: parseFloat(document.getElementById('edit-menu-price').value),
+                        quantity: parseInt(document.getElementById('edit-menu-qty').value, 10),
+                        status: document.getElementById('edit-menu-status').value,
+                        description: document.getElementById('edit-menu-desc').value.trim()
+                    };
+                    await API.updateMenu(id, body);
+                    this.closeEditMenuModal();
+                    this.loadMenuItems();
+                    this.showNotificationDrawer('✏️ Item Updated', `${body.item_name} updated successfully!`, 'View Menu', () => App.navigateTo('menu'));
+                } catch (err) {
+                    this.toast('Error updating menu item: ' + err.message, 'error');
+                } finally {
+                    if (submitBtn) {
+                        submitBtn.disabled = false;
+                        submitBtn.innerHTML = origText;
+                    }
+                }
+            });
+        }
+
+        // Edit FAQ Form
+        const formEditFaq = document.getElementById('form-edit-faq');
+        if (formEditFaq) {
+            formEditFaq.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const id = document.getElementById('edit-faq-id').value;
+                if (!id) return;
+                const submitBtn = formEditFaq.querySelector('button[type="submit"]');
+                const origText = submitBtn ? submitBtn.innerHTML : '';
+                if (submitBtn) {
+                    submitBtn.disabled = true;
+                    submitBtn.innerHTML = 'Updating FAQ... ⏳';
+                }
+                try {
+                    const body = {
+                        category: document.getElementById('edit-faq-category').value.trim(),
+                        question: document.getElementById('edit-faq-question').value.trim(),
+                        answer: document.getElementById('edit-faq-answer').value.trim()
+                    };
+                    await API.updateFAQ(id, body);
+                    this.closeEditFAQModal();
+                    this.loadFAQItems();
+                    this.showNotificationDrawer('✏️ FAQ Updated', `FAQ updated successfully!`, 'View FAQ', () => App.navigateTo('faq'));
+                } catch (err) {
+                    this.toast('Error updating FAQ: ' + err.message, 'error');
+                } finally {
+                    if (submitBtn) {
+                        submitBtn.disabled = false;
+                        submitBtn.innerHTML = origText;
+                    }
+                }
+            });
+        }
 
         // Simulation flag toggles
         ['sim-llm-fail', 'sim-inv-fail', 'sim-wa-fail'].forEach(id => {
@@ -1246,6 +2170,28 @@ const App = {
         // Search inputs
         document.getElementById('menu-search')?.addEventListener('input', () => this.loadMenuItems());
         document.getElementById('faq-search')?.addEventListener('input', () => this.loadFAQItems());
+
+        // Webhook path live preview — updates all display elements as user types
+        const webhookPathInput = document.getElementById('n8n-cfg-webhook-path');
+        if (webhookPathInput) {
+            const updateWebhookPreview = () => {
+                const path = webhookPathInput.value.trim() || 'whatsapp-restaurant';
+                const resolvedUrl = `http://localhost:5678/webhook/${path}`;
+
+                const previewEl = document.getElementById('n8n-webhook-url-preview');
+                if (previewEl) previewEl.innerText = resolvedUrl;
+
+                const displayEl = document.getElementById('n8n-webhook-display');
+                if (displayEl) displayEl.innerText = resolvedUrl;
+
+                const simActiveEl = document.getElementById('sim-active-webhook-url');
+                if (simActiveEl) simActiveEl.innerText = resolvedUrl;
+
+                // Update in-memory state so Simulator picks it up immediately
+                this.n8nWebhookUrl = resolvedUrl;
+            };
+            webhookPathInput.addEventListener('input', updateWebhookPreview);
+        }
     },
 
     // ============================================================

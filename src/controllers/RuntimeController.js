@@ -48,6 +48,15 @@ class RuntimeController {
         }
     }
 
+    async ensureN8n(req, res) {
+        try {
+            const result = await this.n8nManager.ensureN8nRunning();
+            res.json({ success: true, data: result });
+        } catch (err) {
+            res.status(500).json({ success: false, error: err.message });
+        }
+    }
+
     async startN8n(req, res) {
         try {
             const result = await this.n8nManager.startDemoInstance();

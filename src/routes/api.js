@@ -152,6 +152,7 @@ router.post('/test/reset-session', (req, res) => simulator.resetSession(req, res
 // 13. RUNTIME PROCESS, RESET & AUDIT TELEMETRY
 // ----------------------------------------------------------
 router.get('/runtime/n8n/status', (req, res) => runtime.getN8nStatus(req, res));
+router.post('/runtime/n8n/ensure', (req, res) => runtime.ensureN8n(req, res));
 router.post('/runtime/n8n/start', (req, res) => runtime.startN8n(req, res));
 router.post('/runtime/n8n/stop', (req, res) => runtime.stopN8n(req, res));
 router.post('/demo/reset', (req, res) => runtime.resetDemoData(req, res));
