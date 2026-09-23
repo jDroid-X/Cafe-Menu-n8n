@@ -27,12 +27,12 @@ class N8nSyncService {
             versionCounter: 0,
             versionId: null,
             updatedAt: null,
-            modelName: 'models/gemini-1.5-flash',
+            modelName: 'models/gemini-2.5-flash',
             temperature: 0.2,
             maxOutputTokens: 450,
             topP: 0.95,
             topK: 40,
-            contextWindowLength: 10,
+            contextWindowLength: 50,
             sessionKey: 'chat_history',
             spreadsheetId: 'restaurant_database',
             inventorySheet: 'Inventory',
@@ -200,7 +200,7 @@ class N8nSyncService {
 
             // Extract Chat Model Node
             const modelNode = nodes.find(n => n.type?.includes('gemini') || n.type?.includes('lmChat') || n.name?.includes('Gemini'));
-            const modelName = modelNode?.parameters?.modelName || 'models/gemini-1.5-flash';
+            const modelName = modelNode?.parameters?.modelName || 'models/gemini-2.5-flash';
             const temperature = modelNode?.parameters?.options?.temperature ?? 0.2;
             const maxOutputTokens = modelNode?.parameters?.options?.maxOutputTokens ?? 450;
             const topP = modelNode?.parameters?.options?.topP ?? 0.95;
@@ -208,7 +208,7 @@ class N8nSyncService {
 
             // Extract Memory Node
             const memoryNode = nodes.find(n => n.type?.includes('memory') || n.name?.includes('Memory'));
-            const contextWindowLength = memoryNode?.parameters?.contextWindowLength ?? 10;
+            const contextWindowLength = memoryNode?.parameters?.contextWindowLength ?? 50;
             const sessionKey = memoryNode?.parameters?.sessionKey || 'chat_history';
 
             // Extract Tools - Support both native googleSheetsTool and LangChain http tool formats
@@ -411,12 +411,12 @@ class N8nSyncService {
             const brandName = data.restaurant_name || 'jDroid-X- CafeMenu';
             const contactPhone = data.contact_number || '+95 1224567890';
             const openingHours = data.opening_hours || '09:00 AM - 11:00 PM';
-            const modelName = data.model || 'models/gemini-1.5-flash';
+            const modelName = data.model || 'models/gemini-2.5-flash';
             const temperature = parseFloat(data.temperature ?? 0.2);
             const maxTokens = parseInt(data.max_tokens ?? 450, 10);
             const topP = parseFloat(data.top_p ?? 0.95);
             const topK = parseInt(data.top_k ?? 40, 10);
-            const memoryLength = parseInt(data.contextWindowLength ?? 10, 10);
+            const memoryLength = parseInt(data.contextWindowLength ?? 50, 10);
             const sessionKey = data.session_key || 'chat_history';
 
             const spreadsheetId = data.spreadsheet_id || 'restaurant_database';

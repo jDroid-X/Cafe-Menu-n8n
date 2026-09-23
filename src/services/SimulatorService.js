@@ -54,7 +54,19 @@ class SimulatorService {
 
         // 1. Normalize message
         const normalized = whatsappAdapter.normalizeIncoming(rawInput);
-        const sessionKey = normalized.senderPhone || normalized.senderId || 'demo_session_1';
+        const sessionKey = normalized.senderPhone || normalized.senderId || '1111111111';
+
+        // Ingress channel identification:
+        // 0000000000 -> n8n Chat node
+        // 1111111111 -> App HTTP Webhook
+        // 10-digit mobile -> Meta WhatsApp
+        let ingressChannel = 'WHATSAPP';
+        if (sessionKey === '0000000000') {
+            ingressChannel = 'CHAT_NODE';
+        } else if (sessionKey === '1111111111') {
+            ingressChannel = 'WEB_APP';
+        }
+        normalized.ingressChannel = ingressChannel;
 
         // Extract customer name if introduced in conversational message
         const nameIntroMatch = normalized.messageText.match(/(?:my name is|i am|name is|this is)\s*([A-Za-z\s]+?)(?:,|\.|\bwant\b|\band\b|$)/i);
@@ -315,6 +327,7 @@ class SimulatorService {
         return {
             normalizedInput: normalized,
             sessionKey,
+            ingressChannel,
             historyCount: history.length,
             agentDecision: agentResult.decision,
             toolsCalled: agentResult.toolsCalled,

@@ -46,6 +46,27 @@ class DatabaseService {
             const schemaSql = fs.readFileSync(schemaPath, 'utf8');
             this.db.exec(schemaSql);
         }
+
+        // Safe column migration for extended restaurant profile
+        try {
+            const tableInfo = this.db.prepare("PRAGMA table_info(restaurant_config)").all();
+            const existingCols = new Set(tableInfo.map(c => c.name));
+            const newCols = [
+                ['address', "TEXT DEFAULT '123 Marine Drive, Nariman Point, Mumbai 400021'"],
+                ['location_url', "TEXT DEFAULT 'https://maps.google.com/?q=Mumbai'"],
+                ['owner_name', "TEXT DEFAULT 'Jitendra G.'"],
+                ['owner_phone', "TEXT DEFAULT '+91 9876543210'"],
+                ['fssai_license', "TEXT DEFAULT '11521000000123'"],
+                ['cuisine_types', "TEXT DEFAULT 'Street Food, Beverages, Fast Food'"]
+            ];
+            for (const [col, colDef] of newCols) {
+                if (!existingCols.has(col)) {
+                    this.db.exec(`ALTER TABLE restaurant_config ADD COLUMN ${col} ${colDef};`);
+                }
+            }
+        } catch (e) {
+            // Silently handle if table not initialized yet
+        }
     }
 
     queryAll(sql, params = []) {

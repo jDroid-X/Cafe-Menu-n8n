@@ -101,10 +101,16 @@ const StaticMock = {
         ]
     }),
     restaurant: () => ({ data: {
-        restaurant_name: 'jDroid-X- CafeMenu', welcome_message: 'Welcome!',
+        restaurant_name: 'jDroid-X- CafeMenu', welcome_message: 'Welcome to jDroid-X- CafeMenu!',
         currency: 'INR', currency_symbol: '₹',
         opening_hours: '09:00 AM - 11:00 PM',
-        contact_number: '+91 9876543210', delivery_enabled: true
+        contact_number: '+91 9876543210', delivery_enabled: true,
+        address: '101 Culinary Boulevard, Metro Hub, Food District',
+        location_url: 'https://maps.google.com/?q=19.0760,72.8777',
+        owner_name: 'Vikram Joshi',
+        owner_phone: '+91 9876543210',
+        fssai_license: 'FSSAI-11223344556677',
+        cuisine_types: 'Indian Street Food, Snacks, Beverages, Maharashtrian Fast Food'
     }}),
     menu: () => ({ data: DemoAI._menu.map((i, idx) => ({
         id: idx + 1, item_code: `VP0${idx + 1}`, item_name: i.name,
@@ -130,16 +136,16 @@ const StaticMock = {
         inventory_rules: '', faq_rules: '', response_style: ''
     }}),
     promptPreview: () => ({ data: { systemPrompt: '[DEMO] Prompt preview not available in static mode.' } }),
-    memoryConfig: () => ({ data: { enabled: true, memory_type: 'WINDOW_BUFFER', max_messages: 10, expiry_minutes: 60 } }),
+    memoryConfig: () => ({ data: { enabled: true, memory_type: 'WINDOW_BUFFER', max_messages: 50, expiry_minutes: 60 } }),
     integrations: () => ({ data: [
         { provider: 'WHATSAPP', mode: 'MOCK', endpoint: '', status: 'READY', config_json: '{}' },
         { provider: 'GOOGLE_SHEETS', mode: 'LOCAL', endpoint: '', config_json: '{}' }
     ]}),
-    n8nSync: () => ({ data: { synced: false, workflowName: 'CafeMenu Whatsapp', versionCounter: 1, nodeCount: 7, modelName: 'gemini-1.5-flash', temperature: 0.2, tools: [], active: false } }),
+    n8nSync: () => ({ data: { synced: false, workflowName: 'CafeMenu Whatsapp', versionCounter: 1, nodeCount: 7, modelName: 'gemini-2.5-flash', temperature: 0.2, tools: [], active: false } }),
     n8nConfig: () => ({ data: {
-        restaurant: { restaurant_name: 'jDroid-X- CafeMenu', contact_number: '+91 9876543210', opening_hours: '09:00 AM - 11:00 PM', currency_symbol: '₹', currency: 'INR', min_order_amount: 0, delivery_enabled: true },
-        agent: { model: 'models/gemini-1.5-flash', temperature: 0.2, max_tokens: 450, top_p: 0.95, top_k: 40, gemini_host: 'https://generativelanguage.googleapis.com', gemini_api_key_configured: false },
-        memory: { contextWindowLength: 10, session_key: 'chat_history', expiry_minutes: 60 },
+        restaurant: { restaurant_name: 'jDroid-X- CafeMenu', contact_number: '+91 9876543210', opening_hours: '09:00 AM - 11:00 PM', currency_symbol: '₹', currency: 'INR', min_order_amount: 0, delivery_enabled: true, address: '101 Culinary Boulevard, Metro Hub, Food District', location_url: 'https://maps.google.com/?q=19.0760,72.8777', owner_name: 'Vikram Joshi', owner_phone: '+91 9876543210', fssai_license: 'FSSAI-11223344556677', cuisine_types: 'Indian Street Food, Snacks, Beverages, Maharashtrian Fast Food' },
+        agent: { model: 'models/gemini-2.5-flash', temperature: 0.2, max_tokens: 450, top_p: 0.95, top_k: 40, gemini_host: 'https://generativelanguage.googleapis.com', gemini_api_key_configured: false },
+        memory: { contextWindowLength: 50, session_key: 'chat_history', expiry_minutes: 60 },
         sheets: { spreadsheet_id: '', inventory_sheet: 'Inventory', inventory_range: 'A:G', faq_sheet: 'FAQ', orders_sheet: 'Orders', oauth_configured: false },
         n8n: { webhook_url: 'http://localhost:5678/webhook/whatsapp-restaurant' }
     }}),

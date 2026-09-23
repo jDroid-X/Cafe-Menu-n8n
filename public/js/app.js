@@ -10,7 +10,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 const App = {
     activeScreen: 'dashboard',
-    currentSessionKey: '919876543210',
+    currentSessionKey: '1111111111',
     parsedBulkItems: [],
     environmentMode: 'DEMO',         // 'DEMO' or 'LIVE'
     dataToolsMode: 'ONLINE',         // 'ONLINE' or 'OFFLINE'
@@ -340,8 +340,8 @@ const App = {
             if (wfName) wfName.innerText = data.workflowName || 'CafeMenu Whatsapp';
             if (vCounter) vCounter.innerText = `v${data.versionCounter || 1} (${(data.versionId || '').slice(0, 8)})`;
             if (nodeCount) nodeCount.innerText = `${data.nodeCount || 7} Nodes`;
-            if (model) model.innerText = `${data.modelName || 'gemini-1.5-flash'} (temp: ${data.temperature ?? 0.2})`;
-            if (memory) memory.innerText = `${data.contextWindowLength || 10} turns`;
+            if (model) model.innerText = `${data.modelName || 'gemini-2.5-flash'} (temp: ${data.temperature ?? 0.2})`;
+            if (memory) memory.innerText = `${data.contextWindowLength || 50} turns`;
             if (tools) tools.innerText = (data.tools || []).join(', ');
             if (lastTime) lastTime.innerText = data.lastSyncedAt ? new Date(data.lastSyncedAt).toLocaleTimeString() : 'Active';
             if (promptPreview && data.systemMessage) {
@@ -435,7 +435,7 @@ const App = {
             const hostEl = document.getElementById('n8n-cfg-gemini-host');
             const keyStatusEl = document.getElementById('gemini-key-status');
 
-            if (modelEl) modelEl.value = agent.model || 'models/gemini-1.5-flash';
+            if (modelEl) modelEl.value = agent.model || 'models/gemini-2.5-flash';
             if (tempEl) tempEl.value = agent.temperature ?? 0.2;
             if (tokensEl) tokensEl.value = agent.max_tokens || 450;
             if (topPEl) topPEl.value = agent.top_p ?? 0.95;
@@ -450,7 +450,7 @@ const App = {
             const sessionKeyEl = document.getElementById('n8n-cfg-session-key');
             const expiryEl = document.getElementById('n8n-cfg-memory-expiry');
 
-            if (memEl) memEl.value = memory.contextWindowLength ?? 10;
+            if (memEl) memEl.value = memory.contextWindowLength ?? 50;
             if (sessionKeyEl) sessionKeyEl.value = memory.session_key || 'chat_history';
             if (expiryEl) expiryEl.value = memory.expiry_minutes || 60;
 
@@ -759,19 +759,23 @@ const App = {
                                 <div style="margin-top:4px;"><strong>Kitchen Notes:</strong> ${o.notes || 'None'}</div>
                             </div>
                             <div class="detail-item">
-                                <strong>Update Order Status:</strong>
+                                <strong>Order Status:</strong>
                                 <div style="display:flex; gap:6px; margin-top:4px; flex-wrap:wrap; align-items:center;">
-                                    <button class="btn btn-primary" style="padding:2px 8px; font-size:10.5px; font-weight:600;" onclick="App.openOrderActionModal('${o.order_code}', '${o.status}', '${o.payment_status}', ${o.id})">⚡ Quick Action</button>
-                                    <button class="btn btn-secondary" style="padding:2px 6px; font-size:10.5px;" onclick="App.changeOrderStatus(${o.id}, 'Accepted')">Accept</button>
-                                    <button class="btn btn-secondary" style="padding:2px 6px; font-size:10.5px;" onclick="App.changeOrderStatus(${o.id}, 'In Progress')">Cooking</button>
-                                    <button class="btn btn-primary" style="padding:2px 6px; font-size:10.5px;" onclick="App.changeOrderStatus(${o.id}, 'Delivered')">Deliver</button>
-                                    <button class="btn btn-danger" style="padding:2px 6px; font-size:10.5px;" onclick="App.changeOrderStatus(${o.id}, 'Rejected')">Reject</button>
+                                    <button class="btn btn-primary" style="padding:2px 8px; font-size:10.5px; font-weight:600;" onclick="App.openOrderActionModal('${o.order_code}', '${o.status}', '${o.payment_status}', ${o.id})">⚡ Action</button>
+                                    <button class="btn btn-secondary" style="padding:2px 6px; font-size:10.5px;" onclick="App.changeOrderStatus(${o.id}, 'Confirmed')">Confirm 🍳</button>
+                                    <button class="btn btn-secondary" style="padding:2px 6px; font-size:10.5px;" onclick="App.changeOrderStatus(${o.id}, 'In Progress')">Cooking 👨‍🍳</button>
+                                    <button class="btn btn-secondary" style="padding:2px 6px; font-size:10.5px;" onclick="App.changeOrderStatus(${o.id}, 'Dispatched')">Dispatch 🛵</button>
+                                    <button class="btn btn-primary" style="padding:2px 6px; font-size:10.5px;" onclick="App.changeOrderStatus(${o.id}, 'Delivered')">Deliver ✅</button>
+                                    <button class="btn btn-danger" style="padding:2px 6px; font-size:10.5px;" onclick="App.changeOrderStatus(${o.id}, 'Cancelled')">Cancel 🛑</button>
                                 </div>
                                 <div style="margin-top:8px;">
-                                    <strong>Payment:</strong>
-                                    <button class="btn btn-secondary" style="padding:2px 6px; font-size:10.5px; margin-top:2px;" onclick="App.changePaymentStatus(${o.id}, 'Payment Received')">
-                                        Mark Paid ✅
-                                    </button>
+                                    <strong>Payment Options:</strong>
+                                    <div style="display:flex; gap:6px; margin-top:4px; flex-wrap:wrap; align-items:center;">
+                                        <button class="btn btn-secondary" style="padding:2px 6px; font-size:10.5px;" onclick="App.changePaymentStatus(${o.id}, 'Cash on Delivery')">Cash 💵</button>
+                                        <button class="btn btn-secondary" style="padding:2px 6px; font-size:10.5px;" onclick="App.changePaymentStatus(${o.id}, 'UPI Confirmed')">UPI 📱</button>
+                                        <button class="btn btn-primary" style="padding:2px 6px; font-size:10.5px;" onclick="App.changePaymentStatus(${o.id}, 'Payment Received')">Paid 💳</button>
+                                        <button class="btn btn-danger" style="padding:2px 6px; font-size:10.5px;" onclick="App.changePaymentStatus(${o.id}, 'Refunded')">Refund 🔄</button>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -977,6 +981,20 @@ const App = {
             document.getElementById('rest-hours').value = data.opening_hours || '09:00 AM - 11:00 PM';
             document.getElementById('rest-contact').value = data.contact_number || '+95 1224567890';
             document.getElementById('rest-delivery').checked = !!data.delivery_enabled;
+
+            const addrEl = document.getElementById('rest-address');
+            if (addrEl) addrEl.value = data.address || '';
+            const locEl = document.getElementById('rest-location-url');
+            if (locEl) locEl.value = data.location_url || '';
+            const ownerEl = document.getElementById('rest-owner-name');
+            if (ownerEl) ownerEl.value = data.owner_name || '';
+            const phoneEl = document.getElementById('rest-owner-phone');
+            if (phoneEl) phoneEl.value = data.owner_phone || '';
+            const fssaiEl = document.getElementById('rest-fssai');
+            if (fssaiEl) fssaiEl.value = data.fssai_license || '';
+            const cuisEl = document.getElementById('rest-cuisines');
+            if (cuisEl) cuisEl.value = data.cuisine_types || '';
+
             this.applyBrandName(data.restaurant_name, data.contact_number, data.currency_symbol);
         } catch (err) {
             alert('Failed to load profile: ' + err.message);
@@ -999,7 +1017,13 @@ const App = {
                 currency_symbol: document.getElementById('rest-symbol').value,
                 opening_hours: document.getElementById('rest-hours').value,
                 contact_number: document.getElementById('rest-contact').value,
-                delivery_enabled: document.getElementById('rest-delivery').checked
+                delivery_enabled: document.getElementById('rest-delivery').checked,
+                address: document.getElementById('rest-address')?.value || '',
+                location_url: document.getElementById('rest-location-url')?.value || '',
+                owner_name: document.getElementById('rest-owner-name')?.value || '',
+                owner_phone: document.getElementById('rest-owner-phone')?.value || '',
+                fssai_license: document.getElementById('rest-fssai')?.value || '',
+                cuisine_types: document.getElementById('rest-cuisines')?.value || ''
             };
             await API.updateRestaurant(body);
             this.applyBrandName(body.restaurant_name, body.contact_number, body.currency_symbol);
@@ -1712,6 +1736,15 @@ const App = {
             });
         });
 
+        // Ingress Sender ID selector
+        const senderSelect = document.getElementById('chat-sender-id');
+        if (senderSelect) {
+            senderSelect.value = this.currentSessionKey;
+            senderSelect.addEventListener('change', (e) => {
+                this.setSessionSenderId(e.target.value);
+            });
+        }
+
         document.getElementById('btn-reset-chat-session').addEventListener('click', async () => {
             await API.resetSession(this.currentSessionKey);
             document.getElementById('whatsapp-messages').innerHTML = `
@@ -1720,8 +1753,17 @@ const App = {
                     <div class="chat-time">${new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</div>
                 </div>
             `;
-            document.getElementById('trace-output').innerText = '// Session reset. Next message will be turn 1.';
+            document.getElementById('trace-output').innerText = `// Session reset for Sender ID: ${this.currentSessionKey}. Next message will be turn 1.`;
         });
+    },
+
+    setSessionSenderId(val) {
+        if (!val) return;
+        this.currentSessionKey = val;
+        const senderSelect = document.getElementById('chat-sender-id');
+        if (senderSelect && senderSelect.value !== val) senderSelect.value = val;
+        const channelLabel = val === '0000000000' ? 'Chat Canvas Node' : (val === '1111111111' ? 'Webhook / Web App' : 'WhatsApp Cloud');
+        this.toast(`Channel switched to ${channelLabel} (${val})`, 'info');
     },
 
     appendChatBubble(text, direction) {

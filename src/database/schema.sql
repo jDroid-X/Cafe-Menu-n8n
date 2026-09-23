@@ -17,6 +17,12 @@ CREATE TABLE IF NOT EXISTS restaurant_config (
     opening_hours TEXT NOT NULL DEFAULT '09:00 AM - 11:00 PM',
     delivery_enabled INTEGER NOT NULL DEFAULT 1,
     contact_number TEXT NOT NULL DEFAULT '+95 1224567890',
+    address TEXT DEFAULT '123 Marine Drive, Nariman Point, Mumbai 400021',
+    location_url TEXT DEFAULT 'https://maps.google.com/?q=Mumbai',
+    owner_name TEXT DEFAULT 'Jitendra G.',
+    owner_phone TEXT DEFAULT '+91 9876543210',
+    fssai_license TEXT DEFAULT '11521000000123',
+    cuisine_types TEXT DEFAULT 'Street Food, Beverages, Fast Food',
     min_order_amount REAL NOT NULL DEFAULT 100.0,
     active INTEGER NOT NULL DEFAULT 1,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP

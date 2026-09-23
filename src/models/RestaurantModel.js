@@ -29,6 +29,12 @@ class RestaurantModel {
         const openingHours = data.opening_hours ?? current.opening_hours;
         const deliveryEnabled = data.delivery_enabled !== undefined ? (data.delivery_enabled ? 1 : 0) : current.delivery_enabled;
         const contactNumber = data.contact_number ?? current.contact_number;
+        const address = data.address ?? current.address;
+        const locationUrl = data.location_url ?? current.location_url;
+        const ownerName = data.owner_name ?? current.owner_name;
+        const ownerPhone = data.owner_phone ?? current.owner_phone;
+        const fssaiLicense = data.fssai_license ?? current.fssai_license;
+        const cuisineTypes = data.cuisine_types ?? current.cuisine_types;
         const minOrderAmount = data.min_order_amount ?? current.min_order_amount;
         const active = data.active !== undefined ? (data.active ? 1 : 0) : current.active;
 
@@ -42,6 +48,12 @@ class RestaurantModel {
                 opening_hours = ?,
                 delivery_enabled = ?,
                 contact_number = ?,
+                address = ?,
+                location_url = ?,
+                owner_name = ?,
+                owner_phone = ?,
+                fssai_license = ?,
+                cuisine_types = ?,
                 min_order_amount = ?,
                 active = ?,
                 updated_at = CURRENT_TIMESTAMP
@@ -55,6 +67,12 @@ class RestaurantModel {
             openingHours,
             deliveryEnabled,
             contactNumber,
+            address,
+            locationUrl,
+            ownerName,
+            ownerPhone,
+            fssaiLicense,
+            cuisineTypes,
             minOrderAmount,
             active,
             current.id

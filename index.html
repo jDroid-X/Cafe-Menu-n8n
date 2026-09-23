@@ -96,29 +96,29 @@
         <aside class="app-sidebar">
             <div class="nav-section-title">Overview</div>
             <a class="nav-item active" data-screen="dashboard">
-                <span class="icon">📊</span> Executive Dashboard
+                <span class="icon">📊</span> Executive Desk
             </a>
 
-            <div class="nav-section-title">Restaurant Management</div>
+            <div class="nav-section-title">Operations</div>
             <a class="nav-item" data-screen="restaurant">
                 <span class="icon">🏪</span> Cafe Profile
             </a>
             <a class="nav-item" data-screen="menu">
-                <span class="icon">📋</span> Menu & Inventory
+                <span class="icon">📋</span> Menu Catalog
             </a>
             <a class="nav-item" data-screen="faq">
-                <span class="icon">❓</span> FAQ Knowledge
+                <span class="icon">❓</span> FAQ Base
             </a>
 
-            <div class="nav-section-title">AI Engine & Rules</div>
+            <div class="nav-section-title">AI Engine</div>
             <a class="nav-item" data-screen="n8n" data-stage="stage-4-rules" onclick="App.navigateToStage('n8n','stage-4-rules'); return false;">
-                <span class="icon">🤖</span> AI Prompt Rules (1-6)
+                <span class="icon">🤖</span> Prompt Rules
             </a>
             <a class="nav-item" data-screen="n8n" data-stage="stage-2-memory" onclick="App.navigateToStage('n8n','stage-2-memory'); return false;">
-                <span class="icon">🧠</span> Context Window
+                <span class="icon">🧠</span> Memory Window
             </a>
 
-            <div class="nav-section-title">Integrations & Workflows</div>
+            <div class="nav-section-title">Integrations</div>
             <a class="nav-item" data-screen="n8n" data-stage="stage-1-whatsapp" onclick="App.navigateToStage('n8n','stage-1-whatsapp'); return false;">
                 <span class="icon">📱</span> WhatsApp Cloud
             </a>
@@ -126,18 +126,18 @@
                 <span class="icon">📑</span> Google Sheets
             </a>
             <a class="nav-item" data-screen="n8n">
-                <span class="icon">⚙️</span> n8n Workflow & Multi-Store
+                <span class="icon">⚙️</span> n8n Setup
             </a>
             <a class="nav-item" data-screen="test-console">
-                <span class="icon">💬</span> WhatsApp Simulator
+                <span class="icon">💬</span> Chat Console
             </a>
 
             <div class="nav-section-title">Diagnostics</div>
             <a class="nav-item" data-screen="demo-control">
-                <span class="icon">🧪</span> Fault Simulation
+                <span class="icon">🧪</span> Fault Desk
             </a>
             <a class="nav-item" data-screen="audit">
-                <span class="icon">📜</span> Audit Telemetry
+                <span class="icon">📜</span> Audit Logs
             </a>
 
             <!-- PINNED BOTTOM-LEFT LOGOUT WIDGET -->
@@ -161,7 +161,7 @@
             <!-- SCREEN 01: EXECUTIVE DASHBOARD (CFO LEVEL) -->
             <section id="screen-dashboard" class="screen-view active">
                 <div class="section-header">
-                    <div class="section-title">📊 CFO Executive Dashboard & Telemetry</div>
+                    <div class="section-title">📊 Executive Desk</div>
                     <div class="btn-group">
                         <button class="btn btn-secondary" onclick="App.loadDashboardData()">🔄 Refresh Financials</button>
                     </div>
@@ -208,7 +208,7 @@
 
                 <!-- EXPANDABLE ORDERS TABLE -->
                 <div class="section-header" style="margin-top: 18px; flex-wrap: wrap; gap: 8px;">
-                    <div class="section-title">🧾 Real-Time Order Management (Expand for Full Details)</div>
+                    <div class="section-title">🧾 Orders</div>
                     <div class="btn-group" style="align-items: center; gap: 8px;">
                         <input type="text" id="order-search" placeholder="Search orders (code, customer, item)..." style="width: 200px;" oninput="App.filterOrders()">
                         <select id="order-status-filter" class="rich-select" onchange="App.filterOrders()" title="Filter orders by status">
@@ -245,7 +245,7 @@
             <!-- SCREEN 02: CAFE PROFILE -->
             <section id="screen-restaurant" class="screen-view">
                 <div class="section-header">
-                    <div class="section-title">🏪 jDroid-X- CafeMenu Profile Configuration</div>
+                    <div class="section-title">🏪 Cafe Profile</div>
                 </div>
                 <div class="card">
                     <form id="form-restaurant">
@@ -259,8 +259,16 @@
                                 <input type="text" id="rest-hours" value="09:00 AM - 11:00 PM" required>
                             </div>
                             <div class="form-group">
-                                <label for="rest-contact">Owner / Desk Contact *</label>
+                                <label for="rest-contact">Desk Contact *</label>
                                 <input type="text" id="rest-contact" value="+95 1224567890" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="rest-owner-name">Owner Name</label>
+                                <input type="text" id="rest-owner-name" value="Jitendra G.">
+                            </div>
+                            <div class="form-group">
+                                <label for="rest-owner-phone">Owner Direct Phone</label>
+                                <input type="text" id="rest-owner-phone" value="+91 9876543210">
                             </div>
                             <div class="form-group">
                                 <label for="rest-currency">Currency Code</label>
@@ -271,15 +279,31 @@
                                 <input type="text" id="rest-symbol" value="₹">
                             </div>
                             <div class="form-group" style="justify-content: flex-end; align-items: center; display: flex; gap: 10px;">
-                                <label for="rest-delivery" style="margin-bottom: 0; cursor: pointer; font-size: 12.5px;">Enable Home Delivery</label>
+                                <label for="rest-delivery" style="margin-bottom: 0; cursor: pointer; font-size: 12.5px;">Home Delivery</label>
                                 <label class="switch-ui" title="Toggle Home Delivery (On / Off)">
                                     <input type="checkbox" id="rest-delivery" checked>
                                     <span class="switch-slider"></span>
                                 </label>
                             </div>
                             <div class="form-group full-width">
+                                <label for="rest-address">Street Address &amp; Location</label>
+                                <input type="text" id="rest-address" value="123 Marine Drive, Nariman Point, Mumbai 400021">
+                            </div>
+                            <div class="form-group">
+                                <label for="rest-location-url">Google Maps URL</label>
+                                <input type="text" id="rest-location-url" value="https://maps.google.com/?q=Mumbai">
+                            </div>
+                            <div class="form-group">
+                                <label for="rest-fssai">FSSAI / Tax ID</label>
+                                <input type="text" id="rest-fssai" value="11521000000123">
+                            </div>
+                            <div class="form-group full-width">
+                                <label for="rest-cuisines">Cuisine Types &amp; Tags</label>
+                                <input type="text" id="rest-cuisines" value="Street Food, Beverages, Fast Food">
+                            </div>
+                            <div class="form-group full-width">
                                 <label for="rest-welcome">Rule 1 Welcome Greeting Message *</label>
-                                <textarea id="rest-welcome" rows="4" required></textarea>
+                                <textarea id="rest-welcome" rows="3" required></textarea>
                             </div>
                         </div>
                         <div style="margin-top: 14px;">
@@ -292,7 +316,7 @@
             <!-- SCREEN 03: MENU & INVENTORY (WITH 3D CARD FLIPPER & BULK CSV UPLOAD) -->
             <section id="screen-menu" class="screen-view">
                 <div class="section-header">
-                    <div class="section-title">📋 Cafe Menu & Stock Inventory</div>
+                    <div class="section-title">📋 Menu Catalog</div>
                     <div class="btn-group" style="flex-wrap: wrap; gap: 8px; align-items: center;">
                         <!-- SEGMENTED TOGGLE (LEFT / RIGHT): TABLE VIEW VS 3D CARD FLIPPER -->
                         <div class="segmented-toggle" id="menu-view-toggle" title="Switch layout: Table View vs 3D Card Flipper">
@@ -345,7 +369,7 @@
             <!-- SCREEN 04: FAQ -->
             <section id="screen-faq" class="screen-view">
                 <div class="section-header">
-                    <div class="section-title">❓ Restaurant FAQs (Knowledge Base)</div>
+                    <div class="section-title">❓ FAQ Base</div>
                     <div class="btn-group">
                         <input type="text" id="faq-search" placeholder="Search FAQs..." style="width: 180px;">
                         <button class="btn btn-primary" id="btn-open-add-faq">+ Add FAQ</button>
@@ -374,7 +398,7 @@
             <!-- ============================================================ -->
             <section id="screen-n8n" class="screen-view">
                 <div class="section-header">
-                    <div class="section-title">⚙️ n8n Workflow Pipeline — Chronological Configuration (:5678)</div>
+                    <div class="section-title">⚙️ n8n Setup</div>
                     <div class="btn-group">
                         <button type="button" class="btn btn-outline" id="btn-force-n8n-sync" onclick="App.syncN8nWorkflow()" style="border-color: var(--brand-primary); color: var(--brand-primary); font-weight: 600;">🔄 Force Sync &amp; Push to n8n</button>
                         <a href="http://localhost:5678/workflow/USdZGa2vqGuUstP7" target="_blank" class="btn btn-secondary">Open Canvas in n8n ↗</a>
@@ -470,7 +494,7 @@
                             </div>
                             <div class="form-group">
                                 <label for="n8n-cfg-memory-window">Context Memory Window (Interaction Turns)</label>
-                                <input type="number" id="n8n-cfg-memory-window" min="2" max="50" value="10">
+                                <input type="number" id="n8n-cfg-memory-window" min="2" max="100" value="50">
                                 <span style="font-size:11px; color:var(--text-dim);">Controls how many past customer interactions are retained in working memory.</span>
                             </div>
                             <div class="form-group">
@@ -503,9 +527,9 @@
                         <div class="form-group">
                             <label>Google Gemini Model Selection</label>
                             <select id="n8n-cfg-model-name">
-                                <option value="models/gemini-1.5-flash">models/gemini-1.5-flash (Fast &amp; Cost-Effective)</option>
+                                <option value="models/gemini-2.5-flash" selected>models/gemini-2.5-flash (Recommended — Low Latency)</option>
+                                <option value="models/gemini-1.5-flash">models/gemini-1.5-flash (Standard)</option>
                                 <option value="models/gemini-1.5-pro">models/gemini-1.5-pro (High Reasoning)</option>
-                                <option value="models/gemini-2.0-flash">models/gemini-2.0-flash (Next-Gen)</option>
                             </select>
                         </div>
                         <div class="form-group">
@@ -726,7 +750,7 @@
             <!-- SCREEN 10: DEMO CONTROLS -->
             <section id="screen-demo-control" class="screen-view">
                 <div class="section-header">
-                    <div class="section-title">🧪 Diagnostics & Fault Injection Controls</div>
+                    <div class="section-title">🧪 Fault Desk</div>
                 </div>
 
                 <div class="card-grid">
@@ -765,7 +789,7 @@
             <!-- SCREEN 11: TEST CONSOLE & WHATSAPP SIMULATOR -->
             <section id="screen-test-console" class="screen-view">
                 <div class="section-header">
-                    <div class="section-title">💬 WhatsApp Simulator &amp; Live Technical Trace</div>
+                    <div class="section-title">💬 Chat Console</div>
                     <div class="btn-group">
                         <button class="btn btn-secondary" id="btn-reset-chat-session">Reset Session Context</button>
                     </div>
@@ -780,6 +804,17 @@
                     </div>
                     <button class="btn btn-primary" style="padding:4px 12px; font-size:11px; white-space:nowrap;" onclick="App.activateN8nWorkflow()" id="btn-activate-workflow">⚡ Activate Workflow</button>
                     <a href="http://localhost:5678/workflow/USdZGa2vqGuUstP7" target="_blank" class="btn btn-secondary" style="padding:4px 10px; font-size:11px; white-space:nowrap;">Open n8n ↗</a>
+                </div>
+
+                <!-- INGRESS SENDER ID IDENTIFIER -->
+                <div style="display:flex; align-items:center; gap:10px; margin-bottom:12px; font-size:12px; background:var(--bg-secondary); border:1px solid var(--border-color); padding:8px 12px; border-radius:6px; flex-wrap:wrap;">
+                    <span style="font-weight:700; color:var(--text-muted);">Ingress Sender ID:</span>
+                    <select id="sim-sender-id" class="rich-select" style="font-size:11.5px; padding:4px 10px; font-family:var(--font-mono);" onchange="App.setSessionSenderId(this.value)">
+                        <option value="1111111111" selected>1111111111 — App Webhook (Default)</option>
+                        <option value="0000000000">0000000000 — n8n Chat Node</option>
+                        <option value="919876543210">919876543210 — WhatsApp Customer</option>
+                    </select>
+                    <span style="font-size:11px; color:var(--text-dim);">(Isolated 50-turn number-based memory per sender ID)</span>
                 </div>
 
                 <!-- WEBHOOK ROUTING STATUS BAR -->
@@ -851,7 +886,7 @@
             <!-- SCREEN 12: AUDIT & EVENT LOG -->
             <section id="screen-audit" class="screen-view">
                 <div class="section-header">
-                    <div class="section-title">📜 Audit Trail & System Telemetry Log</div>
+                    <div class="section-title">📜 Audit Logs</div>
                     <div class="btn-group">
                         <button class="btn btn-secondary" onclick="App.loadAuditLogs()">Refresh Logs</button>
                         <button class="btn btn-danger" onclick="API.clearAuditLogs().then(() => App.loadAuditLogs())">Clear</button>

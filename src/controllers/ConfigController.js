@@ -162,7 +162,7 @@ class ConfigController {
                         min_order_amount: rest.min_order_amount || 0
                     },
                     agent: {
-                        model: sync.modelName || llmConfig.model || 'models/gemini-1.5-flash',
+                        model: sync.modelName || llmConfig.model || 'models/gemini-2.5-flash',
                         temperature: sync.temperature ?? agent.temperature ?? 0.2,
                         max_tokens: sync.maxOutputTokens ?? agent.max_tokens ?? 450,
                         top_p: sync.topP ?? 0.95,
@@ -173,7 +173,7 @@ class ConfigController {
                         systemMessage: sync.systemMessage || agent.restaurant_rules || ''
                     },
                     memory: {
-                        contextWindowLength: sync.contextWindowLength ?? memory.max_messages ?? 10,
+                        contextWindowLength: sync.contextWindowLength ?? memory.max_messages ?? 50,
                         session_key: sync.sessionKey || memory.session_key_expression || 'chat_history',
                         memory_type: memory.memory_type || 'WINDOW_BUFFER'
                     },
@@ -275,7 +275,7 @@ class ConfigController {
             });
 
             const llmConfig = {
-                model: body.model || 'models/gemini-1.5-flash',
+                model: body.model || 'models/gemini-2.5-flash',
                 temperature: body.temperature !== undefined ? parseFloat(body.temperature) : 0.2,
                 max_tokens: body.max_tokens !== undefined ? parseInt(body.max_tokens, 10) : 450,
                 top_p: body.top_p !== undefined ? parseFloat(body.top_p) : 0.95,
@@ -290,14 +290,14 @@ class ConfigController {
                 restaurant_name: updatedRest.restaurant_name,
                 contact_number: updatedRest.contact_number,
                 opening_hours: updatedRest.opening_hours,
-                model: body.model || 'models/gemini-1.5-flash',
+                model: body.model || 'models/gemini-2.5-flash',
                 gemini_api_key: body.gemini_api_key,
                 gemini_host: body.gemini_host,
                 temperature: body.temperature ?? 0.2,
                 max_tokens: body.max_tokens ?? 450,
                 top_p: body.top_p ?? 0.95,
                 top_k: body.top_k ?? 40,
-                contextWindowLength: body.contextWindowLength ?? 10,
+                contextWindowLength: body.contextWindowLength ?? 50,
                 session_key: body.session_key ?? 'chat_history',
                 spreadsheet_id: sheetsConfig.spreadsheet_id,
                 inventory_sheet: sheetsConfig.inventory_sheet,
